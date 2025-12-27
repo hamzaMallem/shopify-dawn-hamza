@@ -1,0 +1,132 @@
+{%- comment -%}
+  Set default parameter values
+  Allows product card to be flexible across different contexts
+{%- endcomment -%}
+
+{%- liquid
+  assign show_vendor = show_vendor | default: false
+  assign show_cod = show_cod | default: false
+-%}
+
+{%- comment -%}
+  Determine product sale state
+  Used to show sale badge and price formatting
+{%- endcomment -%}
+
+{%- liquid
+  assign on_sale = false
+  if product.compare_at_price > product.price
+    assign on_sale = true
+  endif
+-%}
+
+{%- comment -%}
+  Determine product availability
+  Used to show sold out badge
+{%- endcomment -%}
+
+{%- liquid
+  assign sold_out = true
+  if product.available
+    assign sold_out = false
+  endif
+-%}
+
+<div class="mallem-product-card">
+  <div class="mallem-product-card__media">
+    <a href="{{ product.url }}" class="mallem-product-card__link">
+      {%- comment -%}
+        Render responsive product image
+        Provides multiple sizes for optimal performance
+      {%- endcomment -%}
+
+      {%- if product.featured_image -%}
+        <img
+          srcset="{{ product.featured_image | image_url: width: 300 }} 300w,
+                  {{ product.featured_image | image_url: width: 600 }} 600w,
+                  {{ product.featured_image | image_url: width: 900 }} 900w"
+          src="{{ product.featured_image | image_url: width: 600 }}"
+          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+          alt="{{ product.featured_image.alt | escape }}"
+          width="{{ product.featured_image.width }}"
+          height="{{ product.featured_image.height }}"
+          loading="lazy"
+          class="mallem-product-card__image"
+        >
+      {%- endif -%}
+    </a>
+
+    {%- comment -%}
+      Render badges if any condition is met
+      Badge visibility determined here, rendering delegated to badge snippet
+    {%- endcomment -%}
+
+    {%- if on_sale or sold_out or show_cod -%}
+      <div class="mallem-product-card__badges">
+        {%- comment -%}
+          Sold out takes priority over sale
+          Prevents showing conflicting badges simultaneously
+        {%- endcomment -%}
+
+        {%- if sold_out -%}
+          {% render 'mallem-badge', type: 'soldout' %}
+        {%- elsif on_sale -%}
+          {% render 'mallem-badge', type: 'sale' %}
+        {%- endif -%}
+
+        {%- comment -%}
+          COD badge shows independently
+          Can appear alongside sale or sold out
+        {%- endcomment -%}
+
+        {%- if show_cod -%}
+          {% render 'mallem-badge', type: 'cod' %}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+
+  <div class="mallem-product-card__info">
+    {%- comment -%}
+      Optionally display product vendor
+      Controlled by show_vendor parameter
+    {%- endcomment -%}
+
+    {%- if show_vendor and product.vendor -%}
+      <div class="mallem-product-card__vendor">
+        {{ product.vendor }}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%}
+      Render product title as heading
+      Linked to product page for accessibility
+    {%- endcomment -%}
+
+    <h3 class="mallem-product-card__title">
+      <a href="{{ product.url }}">
+        {{ product.title | escape }}
+      </a>
+    </h3>
+
+    {%- comment -%}
+      Render product price
+      Shows sale and compare pricing when applicable
+    {%- endcomment -%}
+
+    <div class="mallem-product-card__price">
+      {%- if on_sale -%}
+        <span class="mallem-product-card__price-sale">
+          {{ product.price | money }}
+        </span>
+        <span class="mallem-product-card__price-compare">
+          {{ product.compare_at_price | money }}
+        </span>
+      {%- else -%}
+        <span class="mallem-product-card__price-regular">
+          {{ product.price | money }}
+        </span>
+      {%- endif -%}
+    </div>
+  </div>
+</div>

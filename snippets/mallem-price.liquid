@@ -1,0 +1,35 @@
+{%- liquid
+  assign show_compare = show_compare | default: true
+  assign show_discount = show_discount | default: false
+
+  assign on_sale = false
+  if product.compare_at_price > product.price
+    assign on_sale = true
+  endif
+-%}
+
+<div class="mallem-price">
+  {%- if on_sale -%}
+    <span class="mallem-price__current mallem-price__current--sale">
+      {{ product.price | money }}
+    </span>
+
+    {%- if show_compare -%}
+      <s class="mallem-price__compare">
+        {{ product.compare_at_price | money }}
+      </s>
+    {%- endif -%}
+
+    {%- if show_discount -%}
+      {%- assign discount = product.compare_at_price | minus: product.price -%}
+      {%- assign discount_percentage = discount | times: 100.0 | divided_by: product.compare_at_price | round -%}
+      <span class="mallem-price__discount">
+        -{{ discount_percentage }}%
+      </span>
+    {%- endif -%}
+  {%- else -%}
+    <span class="mallem-price__current">
+      {{ product.price | money }}
+    </span>
+  {%- endif -%}
+</div>

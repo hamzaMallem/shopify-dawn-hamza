@@ -1465,5 +1465,43 @@
         "default": "scheme-1"
       }
     ]
+  },
+  {
+    "name": "Mallem RTL & Localization",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Control text direction (RTL/LTR) for your store. The theme automatically detects RTL languages (Arabic, Hebrew, Farsi, Urdu), but you can override this setting manually."
+      },
+      {
+        "type": "select",
+        "id": "mallem_rtl_direction",
+        "label": "Text direction",
+        "info": "Choose 'Auto' to detect direction from language, or manually set RTL (right-to-left) or LTR (left-to-right).",
+        "options": [
+          {
+            "value": "auto",
+            "label": "Auto-detect from language"
+          },
+          {
+            "value": "rtl",
+            "label": "Force RTL (Arabic, Hebrew, Farsi, Urdu)"
+          },
+          {
+            "value": "ltr",
+            "label": "Force LTR (English, French, Spanish, etc.)"
+          }
+        ],
+        "default": "auto"
+      },
+      {
+        "type": "header",
+        "content": "RTL Language Support"
+      },
+      {
+        "type": "paragraph",
+        "content": "The following languages are automatically detected as RTL: Arabic (ar), Hebrew (he), Farsi/Persian (fa), and Urdu (ur). The theme will automatically flip layouts, navigation, and text alignment for these languages."
+      }
+    ]
   }
 ]

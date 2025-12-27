@@ -1,0 +1,26 @@
+{%- comment -%}
+  Map badge type to translation key
+  This allows centralized badge rendering logic
+{%- endcomment -%}
+
+{%- liquid
+  case type
+    when 'sale'
+      assign translation_key = 'products.badge.sale'
+    when 'soldout'
+      assign translation_key = 'products.badge.sold_out'
+    when 'cod'
+      assign translation_key = 'products.badge.cod'
+  endcase
+-%}
+
+{%- comment -%}
+  Only render if translation key exists
+  Prevents rendering empty badges for invalid types
+{%- endcomment -%}
+
+{%- if translation_key -%}
+  <span class="mallem-badge mallem-badge--{{ type }}">
+    {{ translation_key | t }}
+  </span>
+{%- endif -%}

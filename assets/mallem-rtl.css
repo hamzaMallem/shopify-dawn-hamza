@@ -1,0 +1,468 @@
+/**
+ * ============================================================================
+ * Mallem RTL Foundation System
+ * ============================================================================
+ *
+ * Comprehensive RTL (Right-to-Left) support for the Mallem Shopify theme.
+ *
+ * Features:
+ * - CSS Logical Properties for direction-agnostic layouts
+ * - RTL-specific adjustments for UI components
+ * - Mobile-first responsive design
+ * - Zero JavaScript dependency
+ * - Performance-optimized with minimal specificity
+ * - Compatible with Dawn architecture
+ *
+ * Browser Support:
+ * - Modern browsers with CSS Logical Properties support
+ * - Graceful degradation for older browsers
+ *
+ * Usage:
+ * This file is automatically loaded when the mallem-rtl-wrapper snippet
+ * detects an RTL language or when merchants enable RTL via theme settings.
+ *
+ * ============================================================================
+ */
+
+/**
+ * ============================================================================
+ * Base RTL Foundations
+ * ============================================================================
+ */
+
+/**
+ * Root-level RTL direction
+ * Applied to <html> element via mallem-rtl-wrapper.liquid
+ */
+.mallem-rtl {
+  direction: rtl;
+  text-align: start; /* Use logical 'start' instead of 'left' */
+}
+
+.mallem-ltr {
+  direction: ltr;
+  text-align: start;
+}
+
+/**
+ * ============================================================================
+ * Typography & Text Alignment
+ * ============================================================================
+ */
+
+/**
+ * Ensure text alignment respects document direction
+ * Using logical properties for future-proof styling
+ */
+.mallem-rtl {
+  /* Text alignment using logical properties */
+  --text-align-start: right;
+  --text-align-end: left;
+}
+
+.mallem-ltr {
+  --text-align-start: left;
+  --text-align-end: right;
+}
+
+/**
+ * RTL-specific text rendering optimizations
+ * Improves readability for Arabic and Hebrew fonts
+ */
+.mallem-rtl body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/**
+ * ============================================================================
+ * CSS Logical Properties - Spacing
+ * ============================================================================
+ */
+
+/**
+ * Margin utilities using logical properties
+ * These automatically flip in RTL contexts
+ */
+.mallem-rtl *,
+.mallem-ltr * {
+  /* Encourage use of logical properties throughout the theme */
+  /* Note: These are already direction-aware */
+}
+
+/**
+ * ============================================================================
+ * Navigation & Menu Components
+ * ============================================================================
+ */
+
+/**
+ * Main navigation - RTL horizontal menus
+ * Flip alignment and spacing for menu items
+ */
+.mallem-rtl .header__menu-item,
+.mallem-rtl .header__inline-menu,
+.mallem-rtl .menu-drawer__menu {
+  text-align: start;
+}
+
+/**
+ * Submenu indicators (chevrons, arrows)
+ * Rotate/flip directional indicators in RTL
+ */
+.mallem-rtl .header__menu-item .icon-caret,
+.mallem-rtl .menu-drawer__menu-item .icon-caret,
+.mallem-rtl .disclosure__button .icon-caret {
+  transform: scaleX(-1); /* Flip horizontally */
+}
+
+/**
+ * Breadcrumb separators
+ * Reverse direction of breadcrumb arrows
+ */
+.mallem-rtl .breadcrumb__link::after {
+  transform: scaleX(-1);
+}
+
+/**
+ * ============================================================================
+ * Product Cards & Grid Components
+ * ============================================================================
+ */
+
+/**
+ * Product card layouts
+ * Ensure proper alignment in grid contexts
+ */
+.mallem-rtl .card__content,
+.mallem-rtl .card__information {
+  text-align: var(--product-card-text-alignment, start);
+}
+
+/**
+ * Product badges (Sale, New, etc.)
+ * Position badges correctly in RTL
+ */
+.mallem-rtl .card__badge {
+  left: auto;
+  right: 0;
+}
+
+.mallem-rtl .card__badge--bottom-left {
+  left: auto;
+  right: 0;
+}
+
+/**
+ * Price display - ensure proper alignment
+ * Keep price components flowing naturally
+ */
+.mallem-rtl .price {
+  text-align: start;
+}
+
+/**
+ * ============================================================================
+ * Forms & Input Components
+ * ============================================================================
+ */
+
+/**
+ * Form field alignment
+ * Ensure labels and inputs align correctly
+ */
+.mallem-rtl .field__input,
+.mallem-rtl .field__label,
+.mallem-rtl .customer .field input,
+.mallem-rtl .customer select {
+  text-align: start;
+}
+
+/**
+ * Search icons and form icons
+ * Position icons on the correct side
+ */
+.mallem-rtl .search__button,
+.mallem-rtl .field__button {
+  left: auto;
+  right: 0;
+}
+
+.mallem-rtl .field__input {
+  padding-inline-start: 1.5rem;
+  padding-inline-end: 4rem; /* Space for icon */
+}
+
+/**
+ * Quantity selectors
+ * Reverse button order for increment/decrement
+ */
+.mallem-rtl .quantity__button {
+  /* Buttons will naturally reverse in RTL flexbox */
+}
+
+/**
+ * ============================================================================
+ * Cart & Checkout Components
+ * ============================================================================
+ */
+
+/**
+ * Cart drawer positioning
+ * Slide from left instead of right in RTL
+ */
+.mallem-rtl .cart-drawer,
+.mallem-rtl .menu-drawer {
+  left: auto;
+  right: 0;
+}
+
+/**
+ * Cart item layouts
+ * Align product images and details correctly
+ */
+.mallem-rtl .cart-item,
+.mallem-rtl .cart-item__details {
+  text-align: start;
+}
+
+/**
+ * Remove/delete buttons in cart
+ * Position on the correct side
+ */
+.mallem-rtl .cart-item__remove {
+  left: auto;
+  right: 0;
+}
+
+/**
+ * ============================================================================
+ * Media Components (Images, Video)
+ * ============================================================================
+ */
+
+/**
+ * Media with text sections
+ * Ensure proper layout direction for image+text combinations
+ */
+.mallem-rtl .media-with-text__text {
+  text-align: start;
+}
+
+/**
+ * Product media galleries
+ * Thumbnail navigation in RTL
+ */
+.mallem-rtl .slider-buttons {
+  /* Flex reverse handled by flexbox direction */
+}
+
+.mallem-rtl .slider-button--prev,
+.mallem-rtl .slider-button--next {
+  /* Icons will be flipped by parent transform */
+}
+
+/**
+ * ============================================================================
+ * Utility Classes
+ * ============================================================================
+ */
+
+/**
+ * Text alignment utilities
+ * Direction-aware alignment classes
+ */
+.mallem-rtl .text-start {
+  text-align: right !important;
+}
+
+.mallem-rtl .text-end {
+  text-align: left !important;
+}
+
+/**
+ * Float utilities
+ * Reverse float directions in RTL
+ */
+.mallem-rtl .float-start {
+  float: right !important;
+}
+
+.mallem-rtl .float-end {
+  float: left !important;
+}
+
+/**
+ * ============================================================================
+ * Icons & SVG Components
+ * ============================================================================
+ */
+
+/**
+ * Directional icons (arrows, chevrons)
+ * Flip horizontally for RTL context
+ */
+.mallem-rtl .icon--arrow,
+.mallem-rtl .icon--chevron,
+.mallem-rtl .icon-caret {
+  transform: scaleX(-1);
+}
+
+/**
+ * Preserve specific icons that shouldn't flip
+ * Some icons are orientation-neutral
+ */
+.mallem-rtl .icon--close,
+.mallem-rtl .icon--search,
+.mallem-rtl .icon--cart,
+.mallem-rtl .icon--account {
+  transform: none;
+}
+
+/**
+ * ============================================================================
+ * Mobile-Specific RTL Adjustments
+ * ============================================================================
+ */
+
+/**
+ * Mobile menu drawer
+ * Ensure proper sliding direction on mobile
+ */
+@media screen and (max-width: 749px) {
+  .mallem-rtl .menu-drawer {
+    left: auto;
+    right: 0;
+  }
+
+  .mallem-rtl .header__icon--menu {
+    margin-inline-start: 0;
+    margin-inline-end: 1rem;
+  }
+
+  /**
+   * Mobile product cards
+   * Optimize touch targets in RTL
+   */
+  .mallem-rtl .card__information {
+    padding-inline-start: 0;
+    padding-inline-end: 0;
+  }
+}
+
+/**
+ * ============================================================================
+ * Desktop-Specific RTL Adjustments
+ * ============================================================================
+ */
+
+/**
+ * Desktop navigation and layout refinements
+ */
+@media screen and (min-width: 750px) {
+  /**
+   * Desktop header alignment
+   */
+  .mallem-rtl .header__heading-link {
+    margin-inline-end: auto;
+    margin-inline-start: 0;
+  }
+
+  /**
+   * Desktop grid layouts
+   * Ensure proper grid flow direction
+   */
+  .mallem-rtl .grid {
+    direction: rtl;
+  }
+
+  /**
+   * Product page layouts
+   * Two-column layouts with proper RTL flow
+   */
+  .mallem-rtl .product__info-wrapper {
+    padding-inline-start: 0;
+    padding-inline-end: 4rem;
+  }
+}
+
+/**
+ * ============================================================================
+ * Accessibility Enhancements
+ * ============================================================================
+ */
+
+/**
+ * Focus indicators in RTL
+ * Ensure focus outlines display correctly
+ */
+.mallem-rtl *:focus-visible {
+  outline-offset: 0.2rem;
+}
+
+/**
+ * Skip to content link
+ * Position correctly for RTL screen readers
+ */
+.mallem-rtl .skip-to-content-link:focus {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%);
+}
+
+/**
+ * ============================================================================
+ * Performance Optimizations
+ * ============================================================================
+ */
+
+/**
+ * Use CSS containment for better rendering performance
+ * Isolate RTL layout calculations where appropriate
+ */
+.mallem-rtl .card,
+.mallem-rtl .product-card-wrapper {
+  contain: layout style;
+}
+
+/**
+ * ============================================================================
+ * Browser-Specific Fixes
+ * ============================================================================
+ */
+
+/**
+ * Safari RTL scrollbar fix
+ * Prevent layout shift in RTL scrollable containers
+ */
+@supports (-webkit-appearance: none) {
+  .mallem-rtl .scrollable {
+    direction: rtl;
+  }
+}
+
+/**
+ * ============================================================================
+ * Print Styles
+ * ============================================================================
+ */
+
+/**
+ * Ensure proper RTL rendering in print media
+ */
+@media print {
+  .mallem-rtl {
+    direction: rtl;
+  }
+
+  .mallem-rtl body {
+    text-align: start;
+  }
+}
+
+/**
+ * ============================================================================
+ * End of Mallem RTL Foundation System
+ * ============================================================================
+ */
