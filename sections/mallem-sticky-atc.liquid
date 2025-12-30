@@ -1,0 +1,130 @@
+{%- comment -%}
+  Component: Sticky Add to Cart Bar
+  Purpose: Mobile-first sticky ATC that appears after scrolling past main form
+  Used in: Product pages (via theme customizer)
+
+  Features:
+  - Intersection Observer triggers visibility
+  - Auto-syncs variant/quantity with main form
+  - Optional COD trust badge
+  - Desktop visibility toggle
+  - Merchant enable/disable
+
+  RTL: CSS logical properties throughout
+  Performance: Deferred JS, position:fixed prevents reflow
+{%- endcomment -%}
+
+<div
+  id="mallem-sticky-atc-{{ section.id }}"
+  class="mallem-sticky-atc{% unless section.settings.show_on_desktop %} mallem-sticky-atc--mobile-only{% endunless %}"
+  data-section-id="{{ section.id }}"
+  data-enabled="{{ section.settings.enabled }}"
+  data-show-desktop="{{ section.settings.show_on_desktop }}"
+  hidden
+  role="region"
+  aria-label="{{ 'mallem.sticky_atc.label' | t }}"
+>
+  <div class="mallem-sticky-atc__container page-width">
+    <div class="mallem-sticky-atc__product">
+      {%- if product.featured_image -%}
+        <img
+          src="{{ product.featured_image | image_url: width: 60 }}"
+          alt="{{ product.featured_image.alt | escape }}"
+          width="60"
+          height="60"
+          loading="lazy"
+          class="mallem-sticky-atc__image"
+        >
+      {%- endif -%}
+
+      <div class="mallem-sticky-atc__info">
+        <h2 class="mallem-sticky-atc__title">{{ product.title }}</h2>
+        <div class="mallem-sticky-atc__price" data-sticky-price>
+          {%- render 'mallem-price', product: product, show_badges: false -%}
+        </div>
+      </div>
+    </div>
+
+    <div class="mallem-sticky-atc__actions">
+      {%- if section.settings.show_cod_badge -%}
+        <div class="mallem-sticky-atc__badge">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 0L9.797 5.203H15.595L10.899 8.297L12.696 13.5L8 10.407L3.304 13.5L5.101 8.297L0.405 5.203H6.203L8 0Z" fill="currentColor"/>
+          </svg>
+          <span>{{ section.settings.cod_badge_text | default: 'mallem.trust_badges.cod_available' | t }}</span>
+        </div>
+      {%- endif -%}
+
+      <button
+        type="button"
+        class="mallem-sticky-atc__button button button--primary"
+        data-sticky-atc-button
+        aria-label="{{ 'products.product.add_to_cart' | t }}"
+      >
+        <span class="mallem-sticky-atc__button-text">
+          {{ 'products.product.add_to_cart' | t }}
+        </span>
+        <div class="mallem-sticky-atc__spinner" hidden>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="50.265" stroke-dashoffset="50.265">
+              <animate attributeName="stroke-dashoffset" values="50.265;0" dur="1s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+{{ 'mallem-sticky-atc.css' | asset_url | stylesheet_tag }}
+
+<script src="{{ 'mallem-sticky-atc.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "t:sections.mallem_sticky_atc.name",
+  "tag": "section",
+  "class": "section-mallem-sticky-atc",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "t:sections.mallem_sticky_atc.settings.enabled.label",
+      "default": true,
+      "info": "t:sections.mallem_sticky_atc.settings.enabled.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_on_desktop",
+      "label": "t:sections.mallem_sticky_atc.settings.show_on_desktop.label",
+      "default": false,
+      "info": "t:sections.mallem_sticky_atc.settings.show_on_desktop.info"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_sticky_atc.settings.header_trust.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cod_badge",
+      "label": "t:sections.mallem_sticky_atc.settings.show_cod_badge.label",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "cod_badge_text",
+      "label": "t:sections.mallem_sticky_atc.settings.cod_badge_text.label",
+      "default": "COD Available",
+      "info": "t:sections.mallem_sticky_atc.settings.cod_badge_text.info"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.mallem_sticky_atc.presets.name"
+    }
+  ]
+}
+{% endschema %}

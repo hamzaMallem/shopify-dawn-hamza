@@ -37,8 +37,10 @@
     },
     "search": {
       "search": "Search",
-      "reset": "Clear search term"
+      "reset": "Clear search term",
+      "placeholder": "Search"
     },
+    "menu": "Menu",
     "cart": {
       "view": "View cart ({{ count }})",
       "view_empty_cart": "View cart",
@@ -78,7 +80,9 @@
     "total_reviews": "total reviews",
     "star_reviews_info": "{{ rating_value }} out of {{ rating_max }} stars",
     "collapsible_content_title": "Collapsible content",
-    "complementary_products": "Complementary products"
+    "complementary_products": "Complementary products",
+    "main_navigation": "Main navigation",
+    "mobile_menu": "Mobile menu"
   },
   "blogs": {
     "article": {
@@ -159,6 +163,7 @@
         "refresh": "Refresh"
       },
       "price": {
+        "from": "From",
         "from_price_html": "From {{ price }}",
         "regular_price": "Regular price",
         "sale_price": "Sale price",
@@ -172,12 +177,24 @@
       "variant_sold_out_or_unavailable": "Variant sold out or unavailable",
       "video_exit_message": "{{ title }} opens full screen video in same window.",
       "view_full_details": "View full details",
+      "view_product": "View {{ product_title }}",
+      "quick_view": "Quick view",
+      "add_to_wishlist": "Add {{ product_title }} to wishlist",
       "xr_button": "View in your space",
       "xr_button_label": "View in your space, loads item in augmented reality window",
       "taxes_included": "Taxes included.",
       "duties_included": "Duties included.",
       "duties_and_taxes_included": "Duties and taxes included.",
       "shipping_policy_html": "<a href=\"{{ link }}\">Shipping</a> calculated at checkout."
+    },
+    "badge": {
+      "sale": "Sale",
+      "sold_out": "Sold Out",
+      "cod": "COD Available",
+      "new": "New",
+      "hot": "Hot",
+      "preorder": "Pre-Order",
+      "limited": "Limited"
     },
     "modal": {
       "label": "Media gallery"
@@ -290,6 +307,9 @@
       "note": "Order special instructions",
       "checkout": "Check out",
       "empty": "Your cart is empty",
+      "empty_description": "Add items to your cart to see them here.",
+      "subtotal": "Subtotal",
+      "view_cart": "View cart",
       "cart_error": "There was an error while updating your cart. Please try again.",
       "cart_quantity_error_html": "You can only add {{ quantity }} of this item to your cart.",
       "duties_and_taxes_included_shipping_at_checkout_with_policy_html": "Duties and taxes included. Discounts and <a href=\"{{ link }}\">shipping</a> calculated at checkout.",
@@ -372,6 +392,78 @@
       "min_error": "This item has a minimum of {{ min }}",
       "max_error": "This item has a maximum of {{ max }}",
       "step_error": "You can only add this item in increments of {{ step }}"
+    },
+    "mallem_sticky_atc": {
+      "name": "Sticky Add to Cart",
+      "settings": {
+        "enabled": {
+          "label": "Enable sticky add to cart",
+          "info": "Shows floating add to cart bar when main form scrolls out of view"
+        },
+        "show_on_desktop": {
+          "label": "Show on desktop",
+          "info": "Enable to show sticky bar on desktop screens (recommended: mobile only)"
+        },
+        "header_trust": {
+          "content": "Trust badges"
+        },
+        "show_cod_badge": {
+          "label": "Show COD badge"
+        },
+        "cod_badge_text": {
+          "label": "COD badge text",
+          "info": "Leave empty to use default translation"
+        }
+      },
+      "presets": {
+        "name": "Sticky Add to Cart"
+      }
+    },
+    "mallem_product_tabs": {
+      "name": "Product Tabs",
+      "settings": {
+        "mobile_behavior": {
+          "label": "Mobile behavior",
+          "options": {
+            "accordion": "Accordion (all closed)",
+            "accordion_first_open": "Accordion (first open)"
+          },
+          "info": "How tabs appear on mobile devices"
+        }
+      },
+      "blocks": {
+        "description": {
+          "name": "Description"
+        },
+        "shipping": {
+          "name": "Shipping Info"
+        },
+        "size_guide": {
+          "name": "Size Guide"
+        },
+        "cod_info": {
+          "name": "Cash on Delivery"
+        },
+        "custom": {
+          "name": "Custom Tab"
+        },
+        "settings": {
+          "title": {
+            "label": "Tab title"
+          },
+          "icon": {
+            "label": "Icon (emoji or symbol)",
+            "info": "Optional icon displayed before tab title"
+          },
+          "content": {
+            "label": "Tab content",
+            "info": "Leave empty to use default content"
+          }
+        }
+      },
+      "presets": {
+        "name": "Product Tabs"
+      }
     }
   },
   "localization": {
@@ -524,6 +616,29 @@
       "max_characters": "{{ max_chars }} characters max",
       "send_on": "YYYY-MM-DD",
       "send_on_label": "Send on (optional)"
+    }
+  },
+  "mallem": {
+    "sticky_atc": {
+      "label": "Sticky add to cart bar"
+    },
+    "trust_badges": {
+      "cod_available": "COD Available"
+    },
+    "product_tabs": {
+      "label": "Product information tabs",
+      "empty_content": "No content available for this tab.",
+      "shipping_default": "Free shipping on orders over $50. Standard delivery in 3-5 business days.",
+      "size_guide_default": "Refer to our size chart to find your perfect fit.",
+      "cod_title": "Cash on Delivery Available",
+      "cod_description": "Pay with cash when your order is delivered to your doorstep.",
+      "cod_feature_1": "No payment required upfront",
+      "cod_feature_2": "Inspect your order before paying",
+      "cod_feature_3": "Available in all regions"
+    },
+    "size_guide": {
+      "button_text": "Size Guide",
+      "open_modal": "Open size guide for {{ product_title }}"
     }
   }
 }

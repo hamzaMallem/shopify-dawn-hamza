@@ -1,0 +1,117 @@
+{%- comment -%}
+  ============================================================================
+  MALLEM QUICK VIEW MODAL
+  ============================================================================
+
+  Global modal container for quick view functionality.
+  Rendered once in theme.liquid, controlled by mallem-quick-view.js
+
+  USAGE:
+  Add to layout/theme.liquid before closing </body>:
+  {% render 'mallem-quick-view-modal' %}
+
+  ARCHITECTURE:
+  - Single instance per page (performance)
+  - Content injected dynamically via JS
+  - No Liquid logic (pure HTML structure)
+  - Accessibility-first (ARIA, focus management)
+  - RTL-ready (CSS logical properties)
+
+  JAVASCRIPT INTEGRATION:
+  - Modal controlled by assets/mallem-quick-view.js
+  - Hooks: [data-mallem-quick-view-modal]
+  - Content container: [data-mallem-quick-view-content]
+  - Close triggers: [data-mallem-quick-view-close]
+
+{%- endcomment -%}
+
+{%- comment -%}
+  Modal Overlay & Container
+  Covers entire viewport when active
+  Z-index managed by CSS to stay above all content
+{%- endcomment -%}
+<div
+  class="mallem-quick-view-modal"
+  data-mallem-quick-view-modal
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="mallem-quick-view-title"
+  aria-hidden="true"
+  hidden>
+
+  {%- comment -%}
+    Modal Overlay (Background)
+    Clicking overlay closes modal (handled by JS)
+  {%- endcomment -%}
+  <div
+    class="mallem-quick-view-modal__overlay"
+    data-mallem-quick-view-close
+    aria-label="{{ 'accessibility.close' | t }}">
+  </div>
+
+  {%- comment -%}
+    Modal Dialog Container
+    Centered on desktop, full-screen on mobile
+    RTL positioning handled via CSS logical properties
+  {%- endcomment -%}
+  <div class="mallem-quick-view-modal__dialog">
+
+    {%- comment -%}
+      Modal Header
+      Contains close button and product title (set dynamically)
+    {%- endcomment -%}
+    <div class="mallem-quick-view-modal__header">
+      <h2
+        id="mallem-quick-view-title"
+        class="mallem-quick-view-modal__title">
+        {{ 'products.product.quick_view' | t }}
+      </h2>
+
+      {%- comment -%}
+        Close Button
+        Large tap target (44px) for mobile accessibility
+        Positioned in corner via CSS logical properties (RTL-safe)
+      {%- endcomment -%}
+      <button
+        type="button"
+        class="mallem-quick-view-modal__close"
+        data-mallem-quick-view-close
+        aria-label="{{ 'accessibility.close' | t }}">
+        <svg
+          class="mallem-quick-view-modal__close-icon"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true">
+          <path
+            d="M18 6L6 18M6 6l12 12"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    {%- comment -%}
+      Modal Body
+      Content injected here via JavaScript
+      Fetched from /products/{handle}?view=quick-view
+      Scrollable when content overflows
+    {%- endcomment -%}
+    <div
+      class="mallem-quick-view-modal__body"
+      data-mallem-quick-view-content>
+      {%- comment -%}
+        Loading State (shown before content loads)
+        Replaced by fetched product HTML
+      {%- endcomment -%}
+      <div class="mallem-quick-view-modal__loading">
+        <div class="mallem-quick-view-modal__spinner"></div>
+        <p>{{ 'accessibility.loading' | t }}</p>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,67 @@
+{%- comment -%}
+  Component: Size Guide Button
+  Purpose: Trigger button for size guide modal (only shows if metafields exist)
+  Used in: Product pages, product cards (via render)
+
+  Features:
+  - Conditional rendering (only if metafields exist)
+  - Data attributes for modal content injection
+  - Accessible button with ARIA label
+  - Optional icon support
+
+  Metafields Required:
+  - product.metafields.mallem.size_guide_title (text)
+  - product.metafields.mallem.size_guide_content (rich_text)
+  - product.metafields.mallem.size_guide_image (file_reference, optional)
+
+  RTL: CSS logical properties in mallem-size-guide.css
+  Performance: No JavaScript until modal opened
+{%- endcomment -%}
+
+{%- liquid
+  assign size_guide_title = product.metafields.mallem.size_guide_title
+  assign size_guide_content = product.metafields.mallem.size_guide_content
+  assign size_guide_image = product.metafields.mallem.size_guide_image
+-%}
+
+{%- comment -%} Only render button if size guide exists {%- endcomment -%}
+{%- if size_guide_title != blank and size_guide_content != blank -%}
+  <button
+    type="button"
+    class="mallem-size-guide-button"
+    data-mallem-size-guide-trigger
+    data-product-handle="{{ product.handle }}"
+    data-size-guide-title="{{ size_guide_title }}"
+    aria-label="{{ 'mallem.size_guide.open_modal' | t: product_title: product.title }}"
+  >
+    {%- comment -%} Icon (ruler/measuring tape) {%- endcomment -%}
+    <svg class="mallem-size-guide-button__icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M3 3L15 15M3 3V15M3 3H15M15 15V3M15 15H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M3 6H5M3 9H5M3 12H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M6 3V5M9 3V5M12 3V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+
+    {%- comment -%} Button text {%- endcomment -%}
+    <span class="mallem-size-guide-button__text">
+      {{ 'mallem.size_guide.button_text' | t }}
+    </span>
+  </button>
+
+  {%- comment -%} Hidden data container for modal content {%- endcomment -%}
+  <script type="application/json" data-size-guide-data="{{ product.handle }}">
+    {
+      "title": {{ size_guide_title | json }},
+      "content": {{ size_guide_content | json }},
+      "image": {
+        {%- if size_guide_image != blank -%}
+          "url": {{ size_guide_image | image_url: width: 800 | json }},
+          "alt": {{ size_guide_image.alt | default: size_guide_title | json }},
+          "width": {{ size_guide_image.width | json }},
+          "height": {{ size_guide_image.height | json }}
+        {%- else -%}
+          "url": null
+        {%- endif -%}
+      }
+    }
+  </script>
+{%- endif -%}

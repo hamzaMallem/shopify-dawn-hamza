@@ -1,0 +1,524 @@
+{%- comment -%}
+  ================================================================================
+  MALLEM LANGUAGE SWITCHER - DESKTOP DROPDOWN (MINIMOG PATTERN)
+  ================================================================================
+
+  Component: Desktop language dropdown selector
+  Purpose: MINIMOG-style language switching for desktop users
+  Used in: sections/header.liquid (desktop only, ≥990px)
+
+  UX Pattern (MINIMOG-identical):
+  - Desktop: Click language icon → Small dropdown appears below
+  - Shows: Available languages with checkmark on current language
+  - Click language → Form submits immediately to Shopify
+  - Mobile: Icon opens drawer instead (unchanged)
+
+  Features:
+  - Shopify native localization form (no manual redirects)
+  - Details/summary pattern (no JS for open/close)
+  - Submit buttons for each language (native HTML form behavior)
+  - Current language checkmark indicator
+  - Accessible (ARIA labels, keyboard navigation)
+  - Click-outside and Escape to close (optional JS enhancement)
+
+  RTL: Uses CSS logical properties throughout
+  Performance: Pure HTML forms, zero JS for language switching
+
+  Technical Approach:
+  - Each language is a <button type="submit" name="locale_code" value="en">
+  - Form submits to {{ routes.root_url }}localization
+  - Shopify handles session, cookies, redirect
+  - Page reloads with new locale
+
+  ================================================================================
+{%- endcomment -%}
+
+{%- liquid
+  comment
+    Get current locale for display and comparison
+  endcomment
+  assign current_locale = request.locale
+
+  comment
+    Early exit if only one language available
+    WHY: No point showing selector with one option
+  endcomment
+  if localization.available_languages.size <= 1
+    echo ''
+    break
+  endif
+-%}
+
+{%- comment -%}
+  Details/Summary Disclosure Widget
+  WHY details: Semantic HTML for toggleable content, no JS needed for open/close
+  WHY data attribute: Hook for optional JS enhancements (click-outside, Escape)
+{%- endcomment -%}
+<details class="mallem-lang-dropdown" data-mallem-lang-dropdown>
+
+  {%- comment -%}
+    Trigger Button (Summary)
+    MINIMOG Pattern: Globe icon + current language code + chevron
+    WHY summary: Native disclosure trigger, keyboard accessible by default
+  {%- endcomment -%}
+  <summary
+    class="mallem-lang-dropdown__trigger"
+    aria-label="{{ 'localization.update_language' | t }}"
+  >
+    {%- comment -%}
+      Globe Icon
+      WHY: Universal language indicator
+      WHY aria-hidden: Decorative, label provides context
+    {%- endcomment -%}
+    <svg class="mallem-lang-dropdown__icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M2 10h16M10 2c-2.5 3-2.5 5-2.5 8s0 5 2.5 8M10 2c2.5 3 2.5 5 2.5 8s0 5-2.5 8" stroke="currentColor" stroke-width="1.5"/>
+    </svg>
+
+    {%- comment -%}
+      Current Language Code (EN, AR, FR, etc.)
+      WHY uppercase: Common convention for language codes
+      WHY visible: User knows current selection without opening dropdown
+    {%- endcomment -%}
+    <span class="mallem-lang-dropdown__current">
+      {{ current_locale.iso_code | upcase }}
+    </span>
+
+    {%- comment -%}
+      Chevron Icon
+      WHY: Visual affordance indicating dropdown
+      WHY CSS rotation: Animates when dropdown opens (via [open] state)
+    {%- endcomment -%}
+    <svg class="mallem-lang-dropdown__chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </summary>
+
+  {%- comment -%}
+    Dropdown Panel
+    WHY absolute positioning: Appears below trigger without affecting layout
+    WHY min-width: Ensures readability even with short language names
+  {%- endcomment -%}
+  <div class="mallem-lang-dropdown__panel">
+
+    {%- comment -%}
+      Shopify Native Localization Form
+      CRITICAL: This is the official Shopify pattern for locale switching
+
+      How it works:
+      1. Form POSTs to /localization endpoint
+      2. Shopify updates session locale
+      3. Shopify sets locale cookie
+      4. Shopify redirects to return_to URL
+      5. Page reloads with new locale
+
+      WHY method="post": Required by Shopify
+      WHY action: Shopify's localization endpoint
+      WHY return_to: Tells Shopify where to redirect after locale change
+      WHY no JS: Native HTML form submission, browser handles everything
+    {%- endcomment -%}
+    <form
+      method="post"
+      action="{{ routes.root_url }}localization"
+      class="mallem-lang-dropdown__form"
+      accept-charset="UTF-8"
+    >
+      {%- comment -%}
+        Return URL Hidden Input
+        WHY: Shopify redirects here after locale change
+        WHY request.path: Stay on current page
+      {%- endcomment -%}
+      <input type="hidden" name="return_to" value="{{ request.path }}">
+
+      {%- comment -%}
+        Language Options List
+        WHY ul/li: Semantic list structure for screen readers
+        WHY role="list": Ensure list semantics in Safari
+      {%- endcomment -%}
+      <ul class="mallem-lang-dropdown__list" role="list">
+        {%- for language in localization.available_languages -%}
+
+          {%- liquid
+            comment
+              Check if this is the current language
+              WHY: Show checkmark indicator
+            endcomment
+            assign is_current = false
+            if language.iso_code == current_locale.iso_code
+              assign is_current = true
+            endif
+          -%}
+
+          <li class="mallem-lang-dropdown__item">
+            {%- comment -%}
+              Language Submit Button
+              MINIMOG Pattern: Code + Name + Checkmark (if current)
+
+              CRITICAL: This is a submit button, NOT a regular button
+              WHY type="submit": Submits form when clicked
+              WHY name="locale_code": Shopify expects this parameter
+              WHY value="{{ language.iso_code }}": The locale to switch to
+
+              When clicked:
+              1. Browser submits form with locale_code=ar (for example)
+              2. Shopify receives POST /localization with locale_code=ar
+              3. Shopify updates session and redirects
+              4. No JavaScript involved in language switching
+            {%- endcomment -%}
+            <button
+              type="submit"
+              name="locale_code"
+              value="{{ language.iso_code }}"
+              class="mallem-lang-dropdown__option{% if is_current %} mallem-lang-dropdown__option--active{% endif %}"
+              {% if is_current %}aria-current="true"{% endif %}
+            >
+              {%- comment -%}
+                Language Code Badge (EN, AR, FR)
+                WHY fixed width: Alignment across all options
+                WHY semibold: Visual hierarchy
+              {%- endcomment -%}
+              <span class="mallem-lang-dropdown__code">
+                {{ language.iso_code | upcase }}
+              </span>
+
+              {%- comment -%}
+                Endonym Name (Language name in its own script)
+                Examples: English, العربية, Français, 日本語
+                WHY endonym_name: Users recognize their native language name
+                WHY not english_name: "Arabic" vs "العربية" - endonym is clearer
+              {%- endcomment -%}
+              <span class="mallem-lang-dropdown__name">
+                {{ language.endonym_name }}
+              </span>
+
+              {%- comment -%}
+                Checkmark for Current Language
+                WHY: Visual feedback of active selection
+                WHY only if is_current: Conditional rendering
+              {%- endcomment -%}
+              {%- if is_current -%}
+                <svg class="mallem-lang-dropdown__check" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M3 8L6.5 11.5L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              {%- endif -%}
+            </button>
+          </li>
+
+        {%- endfor -%}
+      </ul>
+    </form>
+  </div>
+</details>
+
+{%- comment -%}
+  Optional JavaScript Enhancements
+  WHY optional: Component works without JS (progressive enhancement)
+  WHY inline: Minimal code (~20 lines), no need for external file
+
+  Enhancements:
+  1. Close dropdown when clicking outside
+  2. Close dropdown when pressing Escape key
+
+  WHY not needed for language switching: Submit buttons handle that natively
+{%- endcomment -%}
+<script>
+(function() {
+  const dropdown = document.querySelector('[data-mallem-lang-dropdown]');
+  if (!dropdown) return;
+
+  // Close on click outside
+  document.addEventListener('click', function(e) {
+    if (!dropdown.contains(e.target) && dropdown.open) {
+      dropdown.open = false;
+    }
+  });
+
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && dropdown.open) {
+      dropdown.open = false;
+    }
+  });
+})();
+</script>
+
+{%- comment -%}
+  Component Styles (Scoped Inline CSS)
+  WHY inline: Self-contained component, no external dependencies
+  WHY scoped to .mallem-lang-dropdown: No conflicts with theme CSS
+
+  MINIMOG Pattern Matching:
+  - Clean, minimal design
+  - Subtle border and shadow
+  - Hover states on options
+  - Current language highlighted
+  - Smooth animations
+{%- endcomment -%}
+<style>
+/* ============================================================================
+   DESKTOP LANGUAGE DROPDOWN (MINIMOG PATTERN)
+   ============================================================================ */
+
+/* Container: Hidden on mobile, shown on desktop */
+.mallem-lang-dropdown {
+  position: relative;
+  display: none; /* Mobile-first: hidden by default */
+}
+
+@media screen and (min-width: 990px) {
+  .mallem-lang-dropdown {
+    display: block; /* Show on desktop */
+  }
+}
+
+/* ============================================================================
+   TRIGGER BUTTON
+   ============================================================================ */
+
+.mallem-lang-dropdown__trigger {
+  /* Reset default summary styles */
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+
+  /* Layout: Horizontal flex for icon + code + chevron */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  /* Spacing: Comfortable tap/click target */
+  padding-block: 0.5rem;
+  padding-inline: 0.75rem;
+
+  /* Typography */
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  color: rgb(var(--color-foreground));
+
+  /* Style: Subtle border, transparent background */
+  background-color: transparent;
+  border: 1px solid rgba(var(--color-foreground), 0.15);
+  border-radius: 0.25rem;
+
+  /* Interaction: Smooth transitions */
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.mallem-lang-dropdown__trigger:hover {
+  border-color: rgba(var(--color-foreground), 0.3);
+  background-color: rgba(var(--color-foreground), 0.04);
+}
+
+/* Remove default disclosure triangle (browser default) */
+.mallem-lang-dropdown__trigger::-webkit-details-marker {
+  display: none;
+}
+
+/* Icon sizing */
+.mallem-lang-dropdown__icon {
+  flex-shrink: 0;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+/* Current language code */
+.mallem-lang-dropdown__current {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+/* Chevron: Rotates when open */
+.mallem-lang-dropdown__chevron {
+  flex-shrink: 0;
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.mallem-lang-dropdown[open] .mallem-lang-dropdown__chevron {
+  transform: rotate(180deg);
+}
+
+/* ============================================================================
+   DROPDOWN PANEL
+   ============================================================================ */
+
+.mallem-lang-dropdown__panel {
+  /* Position: Absolute dropdown below trigger */
+  position: absolute;
+  inset-block-start: calc(100% + 0.5rem);
+  inset-inline-start: 0;
+  z-index: 100;
+
+  /* Size: Min width for readability */
+  min-inline-size: 200px;
+
+  /* Style: MINIMOG-like appearance */
+  background-color: rgb(var(--color-background));
+  border: 1px solid rgba(var(--color-foreground), 0.08);
+  border-radius: 0.375rem;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* Spacing */
+  padding-block: 0.5rem;
+
+  /* Animation: Fade in + slide down */
+  animation: mallemLangDropdownFadeIn 0.2s ease-out;
+}
+
+/* RTL: Align dropdown to inline-end instead of inline-start */
+[dir="rtl"] .mallem-lang-dropdown__panel {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+
+@keyframes mallemLangDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   LANGUAGE LIST
+   ============================================================================ */
+
+.mallem-lang-dropdown__list {
+  /* Reset list styles */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  /* Layout: Vertical stack */
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.mallem-lang-dropdown__item {
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================================
+   LANGUAGE OPTION BUTTON
+   ============================================================================ */
+
+.mallem-lang-dropdown__option {
+  /* Reset button styles */
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+
+  /* Size: Full width */
+  inline-size: 100%;
+  padding-block: 0.625rem;
+  padding-inline: 1rem;
+
+  /* Layout: Horizontal flex for code + name + check */
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  /* Typography */
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: rgb(var(--color-foreground));
+  text-align: start;
+
+  /* Interaction */
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.mallem-lang-dropdown__option:hover {
+  background-color: rgba(var(--color-foreground), 0.04);
+}
+
+.mallem-lang-dropdown__option:focus-visible {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: -2px;
+  background-color: rgba(var(--color-foreground), 0.06);
+}
+
+/* Active (current) language state */
+.mallem-lang-dropdown__option--active {
+  background-color: rgba(var(--color-foreground), 0.06);
+  font-weight: 600;
+}
+
+/* Language code badge (EN, AR, FR) */
+.mallem-lang-dropdown__code {
+  /* Fixed width for alignment */
+  inline-size: 2rem;
+  flex-shrink: 0;
+
+  /* Typography */
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: rgba(var(--color-foreground), 0.5);
+}
+
+.mallem-lang-dropdown__option--active .mallem-lang-dropdown__code {
+  color: rgb(var(--color-foreground));
+}
+
+/* Language name (English, العربية, etc.) */
+.mallem-lang-dropdown__name {
+  flex: 1; /* Grow to fill available space */
+}
+
+/* Checkmark icon (current language only) */
+.mallem-lang-dropdown__check {
+  flex-shrink: 0;
+  inline-size: 1rem;
+  block-size: 1rem;
+  color: rgb(var(--color-foreground));
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Focus state for summary */
+.mallem-lang-dropdown summary:focus {
+  outline: none;
+}
+
+.mallem-lang-dropdown summary:focus-visible {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .mallem-lang-dropdown__panel {
+    animation: none;
+  }
+
+  .mallem-lang-dropdown__chevron {
+    transition: none;
+  }
+
+  .mallem-lang-dropdown__option {
+    transition: none;
+  }
+
+  .mallem-lang-dropdown__trigger {
+    transition: none;
+  }
+}
+</style>

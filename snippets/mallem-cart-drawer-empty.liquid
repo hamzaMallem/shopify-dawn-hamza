@@ -1,0 +1,58 @@
+{%- comment -%}
+  ================================================================================
+  MALLEM CART DRAWER - EMPTY STATE
+  ================================================================================
+
+  Component: Empty Cart State
+  Purpose: Display when cart has zero items
+  Used in: snippets/mallem-cart-drawer.liquid
+
+  Features:
+  - Icon illustration
+  - Empty message
+  - Continue shopping CTA
+
+  RTL: Text alignment uses logical properties
+  Performance: Inline SVG (no external request)
+
+  ================================================================================
+{%- endcomment -%}
+
+<div class="mallem-cart-drawer-empty">
+  {%- comment -%}
+    Empty Cart Icon
+    WHY large icon: Visual feedback that cart is empty
+  {%- endcomment -%}
+  <div class="mallem-cart-drawer-empty__icon">
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 20L25 50H55L60 20H20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="30" cy="60" r="3" stroke="currentColor" stroke-width="2"/>
+      <circle cx="50" cy="60" r="3" stroke="currentColor" stroke-width="2"/>
+      <path d="M10 10H15L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  {%- comment -%}
+    Empty Message
+    WHY translation key: Support multiple languages
+  {%- endcomment -%}
+  <h3 class="mallem-cart-drawer-empty__title">
+    {{ 'sections.cart.empty' | t }}
+  </h3>
+
+  <p class="mallem-cart-drawer-empty__description">
+    {{ 'sections.cart.empty_description' | t }}
+  </p>
+
+  {%- comment -%}
+    Continue Shopping Button
+    WHY close drawer: Returns user to browsing
+  {%- endcomment -%}
+  <button
+    type="button"
+    class="mallem-cart-drawer-empty__cta"
+    data-mallem-cart-drawer-close
+  >
+    {{ 'general.continue_shopping' | t }}
+  </button>
+</div>

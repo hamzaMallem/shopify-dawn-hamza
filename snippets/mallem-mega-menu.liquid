@@ -1,0 +1,114 @@
+{%- comment -%}
+  Component: Mallem Mega Menu
+  Purpose: Desktop mega menu navigation with multi-column dropdown panels
+  Used in: sections/header.liquid
+
+  Features:
+  - Multi-column dropdown panels using CSS Grid
+  - Three-level navigation hierarchy (parent > category > subcategory)
+  - Hover-based activation on desktop
+  - Native <details>/<summary> for keyboard accessibility
+  - Schema-driven column count control
+  - Supports featured images/promotions per category (future expansion)
+
+  RTL: CSS logical properties throughout (inset-inline, padding-inline, etc.)
+  Performance: Zero JS for core functionality, uses existing header-menu component for focus management
+  Accessibility: Semantic HTML, ARIA labels, keyboard navigation via native details element
+
+  Parameters:
+  - None (reads from section.settings.menu)
+
+  Usage:
+  {%- render 'mallem-mega-menu' -%}
+{%- endcomment -%}
+
+<nav class="mallem-mega-menu" role="navigation" aria-label="{{ 'sections.header.menu' | t }}">
+  <ul class="mallem-mega-menu__list" role="list">
+    {%- for link in section.settings.menu.links -%}
+      <li class="mallem-mega-menu__item">
+        {%- if link.links != blank -%}
+          {%- comment -%} Parent link with dropdown {%- endcomment -%}
+          <header-menu>
+            <details
+              id="MallemMegaMenu-{{ forloop.index }}"
+              class="mallem-mega-menu__details"
+            >
+              <summary
+                id="MallemMegaMenuSummary-{{ link.handle }}"
+                class="mallem-mega-menu__trigger"
+                aria-expanded="false"
+                aria-controls="MallemMegaMenuPanel-{{ forloop.index }}"
+              >
+                <span class="mallem-mega-menu__trigger-text{% if link.child_active %} mallem-mega-menu__trigger-text--active{% endif %}">
+                  {{- link.title | escape -}}
+                </span>
+                <span class="mallem-mega-menu__trigger-icon" aria-hidden="true">
+                  {{- 'icon-caret.svg' | inline_asset_content -}}
+                </span>
+              </summary>
+
+              <div
+                id="MallemMegaMenuPanel-{{ forloop.index }}"
+                class="mallem-mega-menu__panel color-{{ section.settings.menu_color_scheme }} gradient"
+                role="region"
+                aria-labelledby="MallemMegaMenuSummary-{{ link.handle }}"
+                tabindex="-1"
+              >
+                <div class="mallem-mega-menu__panel-inner page-width">
+                  <ul
+                    class="mallem-mega-menu__columns{% if link.levels == 1 %} mallem-mega-menu__columns--single-level{% endif %}"
+                    role="list"
+                  >
+                    {%- for childlink in link.links -%}
+                      <li class="mallem-mega-menu__column">
+                        {%- comment -%} Category heading (level 2) {%- endcomment -%}
+                        <a
+                          id="MallemMegaMenu-{{ link.handle }}-{{ childlink.handle }}"
+                          href="{{ childlink.url }}"
+                          class="mallem-mega-menu__heading{% if childlink.current %} mallem-mega-menu__link--active{% endif %}"
+                          {% if childlink.current %}aria-current="page"{% endif %}
+                        >
+                          {{ childlink.title | escape }}
+                        </a>
+
+                        {%- if childlink.links != blank -%}
+                          {%- comment -%} Subcategory links (level 3) {%- endcomment -%}
+                          <ul class="mallem-mega-menu__sublist" role="list">
+                            {%- for grandchildlink in childlink.links -%}
+                              <li class="mallem-mega-menu__subitem">
+                                <a
+                                  id="MallemMegaMenu-{{ link.handle }}-{{ childlink.handle }}-{{ grandchildlink.handle }}"
+                                  href="{{ grandchildlink.url }}"
+                                  class="mallem-mega-menu__link{% if grandchildlink.current %} mallem-mega-menu__link--active{% endif %}"
+                                  {% if grandchildlink.current %}aria-current="page"{% endif %}
+                                >
+                                  {{ grandchildlink.title | escape }}
+                                </a>
+                              </li>
+                            {%- endfor -%}
+                          </ul>
+                        {%- endif -%}
+                      </li>
+                    {%- endfor -%}
+                  </ul>
+                </div>
+              </div>
+            </details>
+          </header-menu>
+        {%- else -%}
+          {%- comment -%} Simple link without dropdown {%- endcomment -%}
+          <a
+            id="MallemMegaMenu-{{ link.handle }}"
+            href="{{ link.url }}"
+            class="mallem-mega-menu__link-simple"
+            {% if link.current %}aria-current="page"{% endif %}
+          >
+            <span class="mallem-mega-menu__link-simple-text{% if link.current %} mallem-mega-menu__link-simple-text--active{% endif %}">
+              {{- link.title | escape -}}
+            </span>
+          </a>
+        {%- endif -%}
+      </li>
+    {%- endfor -%}
+  </ul>
+</nav>

@@ -1,0 +1,119 @@
+{%- comment -%}
+  ================================================================================
+  MALLEM CART DRAWER
+  ================================================================================
+
+  Component: Cart Drawer (Slide-in)
+  Purpose: Kalles-style slide-in cart with AJAX operations
+  Used in: layout/theme.liquid (global, rendered once)
+
+  Features:
+  - AJAX cart add/update/remove (Shopify Cart API)
+  - Auto-open after add-to-cart
+  - Line items with image, title, variant, price, quantity
+  - Dynamic subtotal calculation
+  - Empty cart state
+  - Checkout CTA
+  - Remove line item button
+  - Quantity increment/decrement
+
+  RTL: Slides from inline-end (right in LTR, left in RTL)
+  Performance: Transform-based animations, will-change hints
+  Accessibility: Focus trap, ARIA labels, keyboard navigation (Escape to close)
+
+  Architecture:
+  - Single global drawer (rendered once in layout/theme.liquid)
+  - Opens via data-mallem-cart-drawer-open triggers
+  - Closes via overlay click, close button, or Escape key
+  - Cart state managed by Shopify Cart API (/cart.js)
+  - JavaScript handles AJAX operations and UI updates
+
+  ================================================================================
+{%- endcomment -%}
+
+<div class="mallem-cart-drawer" id="mallem-cart-drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="mallem-cart-drawer-title">
+  {%- comment -%}
+    Overlay: Click outside to close
+    WHY separate element: Allows independent animation timing
+  {%- endcomment -%}
+  <div class="mallem-cart-drawer__overlay" data-mallem-cart-drawer-close></div>
+
+  {%- comment -%}
+    Main Drawer Panel
+    WHY inline-end positioning: Slides from right (LTR) or left (RTL) automatically
+  {%- endcomment -%}
+  <div class="mallem-cart-drawer__panel">
+    {%- comment -%}
+      Header: Title + Close Button
+      WHY sticky: Remains visible during scroll
+    {%- endcomment -%}
+    <div class="mallem-cart-drawer__header">
+      <h2 class="mallem-cart-drawer__title" id="mallem-cart-drawer-title">
+        {{ 'sections.cart.title' | t }}
+        <span class="mallem-cart-drawer__count" data-cart-count>{{ cart.item_count }}</span>
+      </h2>
+      <button
+        type="button"
+        class="mallem-cart-drawer__close"
+        data-mallem-cart-drawer-close
+        aria-label="{{ 'accessibility.close' | t }}"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    {%- comment -%}
+      Cart Items Container
+      WHY data-cart-items: JavaScript target for AJAX updates
+    {%- endcomment -%}
+    <div class="mallem-cart-drawer__body" data-cart-items>
+      {%- if cart.item_count > 0 -%}
+        {%- for item in cart.items -%}
+          {%- render 'mallem-cart-drawer-item', item: item -%}
+        {%- endfor -%}
+      {%- else -%}
+        {%- render 'mallem-cart-drawer-empty' -%}
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      Footer: Subtotal + Checkout CTA
+      WHY sticky: Remains visible during scroll
+      WHY hidden when empty: No checkout button if cart is empty
+    {%- endcomment -%}
+    <div class="mallem-cart-drawer__footer" {% if cart.item_count == 0 %}style="display: none;"{% endif %} data-cart-footer>
+      <div class="mallem-cart-drawer__subtotal">
+        <span class="mallem-cart-drawer__subtotal-label">{{ 'sections.cart.subtotal' | t }}</span>
+        <span class="mallem-cart-drawer__subtotal-price" data-cart-subtotal>
+          {{ cart.total_price | money }}
+        </span>
+      </div>
+
+      {%- comment -%}
+        Shipping Notice
+        WHY: Set customer expectations (taxes/shipping calculated at checkout)
+      {%- endcomment -%}
+      <p class="mallem-cart-drawer__note">
+        {{ 'sections.cart.taxes_and_shipping_policy_at_checkout_html' | t }}
+      </p>
+
+      {%- comment -%}
+        Checkout Button
+        WHY: Primary conversion action
+      {%- endcomment -%}
+      <a href="{{ routes.cart_url }}" class="mallem-cart-drawer__checkout">
+        {{ 'sections.cart.checkout' | t }}
+      </a>
+
+      {%- comment -%}
+        View Cart Link
+        WHY: Allow users to view full cart page for editing
+      {%- endcomment -%}
+      <a href="{{ routes.cart_url }}" class="mallem-cart-drawer__view-cart">
+        {{ 'sections.cart.view_cart' | t }}
+      </a>
+    </div>
+  </div>
+</div>

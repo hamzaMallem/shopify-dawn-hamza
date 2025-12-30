@@ -1,132 +1,266 @@
 {%- comment -%}
-  Set default parameter values
-  Allows product card to be flexible across different contexts
+  ============================================================================
+  MALLEM PRODUCT CARD
+  ============================================================================
+
+  Premium reusable product card component for collections, search, recommendations.
+  Built for conversion, performance, and merchant flexibility.
+
+  PARAMETERS:
+  - product {Object} Required. Shopify product object
+  - show_vendor {Boolean} Display vendor name. Default: false
+  - show_cod {Boolean} Display COD badge. Default: false
+  - show_quick_view {Boolean} Show quick view button. Default: false
+  - show_wishlist {Boolean} Show wishlist button. Default: false
+  - show_swatches {Boolean} Show variant color swatches. Default: false
+  - show_secondary_image {Boolean} Show second image on hover. Default: true
+  - image_ratio {String} Image aspect ratio: 'portrait', 'square', 'landscape'. Default: 'portrait'
+  - lazy_load {Boolean} Enable lazy loading. Default: true
+  - card_class {String} Additional CSS classes for card wrapper. Default: ''
+
+  USAGE:
+  {% render 'mallem-product-card',
+     product: product,
+     show_vendor: true,
+     show_cod: true,
+     show_quick_view: true
+  %}
+
+  ARCHITECTURE:
+  - Snippet-first (reusable across sections)
+  - RTL-ready (CSS logical properties)
+  - Mobile-first (large tap targets, touch-optimized)
+  - Performance-optimized (lazy loading, no required JS)
+  - Accessible (semantic HTML, ARIA labels)
+
 {%- endcomment -%}
 
 {%- liquid
+  # Set default parameter values
   assign show_vendor = show_vendor | default: false
   assign show_cod = show_cod | default: false
--%}
+  assign show_quick_view = show_quick_view | default: false
+  assign show_wishlist = show_wishlist | default: false
+  assign show_swatches = show_swatches | default: false
+  assign show_secondary_image = show_secondary_image | default: true
+  assign image_ratio = image_ratio | default: 'portrait'
+  assign lazy_load = lazy_load | default: true
+  assign card_class = card_class | default: ''
 
-{%- comment -%}
-  Determine product sale state
-  Used to show sale badge and price formatting
-{%- endcomment -%}
-
-{%- liquid
+  # Determine product state
   assign on_sale = false
   if product.compare_at_price > product.price
     assign on_sale = true
   endif
--%}
 
-{%- comment -%}
-  Determine product availability
-  Used to show sold out badge
-{%- endcomment -%}
-
-{%- liquid
   assign sold_out = true
   if product.available
     assign sold_out = false
   endif
+
+  # Get secondary image for hover effect
+  assign secondary_image = null
+  if show_secondary_image and product.media.size > 1
+    assign secondary_image = product.media[1]
+  endif
+
+  # Aspect ratio class mapping
+  assign ratio_class = 'mallem-product-card__media--portrait'
+  case image_ratio
+    when 'square'
+      assign ratio_class = 'mallem-product-card__media--square'
+    when 'landscape'
+      assign ratio_class = 'mallem-product-card__media--landscape'
+  endcase
 -%}
 
-<div class="mallem-product-card">
-  <div class="mallem-product-card__media">
-    <a href="{{ product.url }}" class="mallem-product-card__link">
-      {%- comment -%}
-        Render responsive product image
-        Provides multiple sizes for optimal performance
-      {%- endcomment -%}
+{%- comment -%} Product Card Wrapper {%- endcomment -%}
+<div class="mallem-product-card {{ card_class }}" data-product-id="{{ product.id }}">
 
+  {%- comment -%}
+    MEDIA CONTAINER
+    Contains image, secondary image, badges, and action buttons
+  {%- endcomment -%}
+  <div class="mallem-product-card__media {{ ratio_class }}">
+    <a href="{{ product.url }}"
+       class="mallem-product-card__link"
+       aria-label="{{ 'products.product.view_product' | t: product_title: product.title }}">
+
+      {%- comment -%} Primary Product Image {%- endcomment -%}
       {%- if product.featured_image -%}
-        <img
-          srcset="{{ product.featured_image | image_url: width: 300 }} 300w,
-                  {{ product.featured_image | image_url: width: 600 }} 600w,
-                  {{ product.featured_image | image_url: width: 900 }} 900w"
-          src="{{ product.featured_image | image_url: width: 600 }}"
-          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-          alt="{{ product.featured_image.alt | escape }}"
-          width="{{ product.featured_image.width }}"
-          height="{{ product.featured_image.height }}"
-          loading="lazy"
-          class="mallem-product-card__image"
-        >
+        {%- if lazy_load -%}
+          <img
+            data-src="{{ product.featured_image | image_url: width: 600 }}"
+            data-srcset="{{ product.featured_image | image_url: width: 300 }} 300w,
+                        {{ product.featured_image | image_url: width: 600 }} 600w,
+                        {{ product.featured_image | image_url: width: 900 }} 900w"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {{ product.featured_image.width }} {{ product.featured_image.height }}'%3E%3C/svg%3E"
+            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
+            alt="{{ product.featured_image.alt | escape }}"
+            width="{{ product.featured_image.width }}"
+            height="{{ product.featured_image.height }}"
+            loading="lazy"
+            class="mallem-product-card__image mallem-product-card__image--primary lazyload"
+          >
+        {%- else -%}
+          <img
+            srcset="{{ product.featured_image | image_url: width: 300 }} 300w,
+                    {{ product.featured_image | image_url: width: 600 }} 600w,
+                    {{ product.featured_image | image_url: width: 900 }} 900w"
+            src="{{ product.featured_image | image_url: width: 600 }}"
+            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
+            alt="{{ product.featured_image.alt | escape }}"
+            width="{{ product.featured_image.width }}"
+            height="{{ product.featured_image.height }}"
+            loading="lazy"
+            class="mallem-product-card__image mallem-product-card__image--primary"
+          >
+        {%- endif -%}
+      {%- else -%}
+        {%- comment -%} Fallback placeholder if no image {%- endcomment -%}
+        {{ 'product-1' | placeholder_svg_tag: 'mallem-product-card__image mallem-product-card__image--placeholder' }}
+      {%- endif -%}
+
+      {%- comment -%} Secondary Image (Hover Effect) {%- endcomment -%}
+      {%- if secondary_image -%}
+        {%- if lazy_load -%}
+          <img
+            data-src="{{ secondary_image | image_url: width: 600 }}"
+            data-srcset="{{ secondary_image | image_url: width: 300 }} 300w,
+                        {{ secondary_image | image_url: width: 600 }} 600w,
+                        {{ secondary_image | image_url: width: 900 }} 900w"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {{ secondary_image.width }} {{ secondary_image.height }}'%3E%3C/svg%3E"
+            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
+            alt="{{ secondary_image.alt | escape }}"
+            width="{{ secondary_image.width }}"
+            height="{{ secondary_image.height }}"
+            loading="lazy"
+            class="mallem-product-card__image mallem-product-card__image--secondary lazyload"
+          >
+        {%- else -%}
+          <img
+            srcset="{{ secondary_image | image_url: width: 300 }} 300w,
+                    {{ secondary_image | image_url: width: 600 }} 600w,
+                    {{ secondary_image | image_url: width: 900 }} 900w"
+            src="{{ secondary_image | image_url: width: 600 }}"
+            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
+            alt="{{ secondary_image.alt | escape }}"
+            width="{{ secondary_image.width }}"
+            height="{{ secondary_image.height }}"
+            loading="lazy"
+            class="mallem-product-card__image mallem-product-card__image--secondary"
+          >
+        {%- endif -%}
       {%- endif -%}
     </a>
 
     {%- comment -%}
-      Render badges if any condition is met
-      Badge visibility determined here, rendering delegated to badge snippet
+      BADGES CONTAINER
+      Priority: Sold Out > Sale > COD
     {%- endcomment -%}
-
-    {%- if on_sale or sold_out or show_cod -%}
+    {%- if sold_out or on_sale or show_cod -%}
       <div class="mallem-product-card__badges">
-        {%- comment -%}
-          Sold out takes priority over sale
-          Prevents showing conflicting badges simultaneously
-        {%- endcomment -%}
-
         {%- if sold_out -%}
           {% render 'mallem-badge', type: 'soldout' %}
         {%- elsif on_sale -%}
           {% render 'mallem-badge', type: 'sale' %}
         {%- endif -%}
 
-        {%- comment -%}
-          COD badge shows independently
-          Can appear alongside sale or sold out
-        {%- endcomment -%}
-
-        {%- if show_cod -%}
+        {%- if show_cod and sold_out == false -%}
           {% render 'mallem-badge', type: 'cod' %}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%}
+      ACTION BUTTONS CONTAINER
+      Quick View & Wishlist (optional merchant-controlled features)
+
+      QUICK VIEW HOOKS (for mallem-quick-view.js module):
+      - data-mallem-quick-view-trigger: Click handler hook
+      - data-product-handle: Product handle for AJAX fetch
+      - data-product-id: Product ID for tracking
+      - Button hidden by default via CSS (shown on hover/touch)
+      - Keyboard accessible (focusable button)
+      - Does not interfere with full-card link
+    {%- endcomment -%}
+    {%- if show_quick_view or show_wishlist -%}
+      <div class="mallem-product-card__actions">
+        {%- if show_quick_view -%}
+          <button
+            type="button"
+            class="mallem-product-card__action mallem-product-card__action--quick-view"
+            aria-label="{{ 'products.product.quick_view' | t: product_title: product.title }}"
+            data-mallem-quick-view-trigger
+            data-product-handle="{{ product.handle }}"
+            data-product-id="{{ product.id }}">
+            <svg class="mallem-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M10 4C5 4 1.73 7.11 1 10c.73 2.89 4 6 9 6s8.27-3.11 9-6c-.73-2.89-4-6-9-6zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" fill="currentColor"/>
+            </svg>
+            <span class="mallem-visually-hidden">{{ 'products.product.quick_view' | t }}</span>
+          </button>
+        {%- endif -%}
+
+        {%- if show_wishlist -%}
+          <button
+            type="button"
+            class="mallem-product-card__action mallem-product-card__action--wishlist"
+            aria-label="{{ 'products.product.add_to_wishlist' | t: product_title: product.title }}"
+            data-product-id="{{ product.id }}"
+            data-wishlist-toggle>
+            <svg class="mallem-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M10 18.35l-1.45-1.32C3.4 12.36 0 9.28 0 5.5 0 2.42 2.42 0 5.5 0 7.24 0 8.91.81 10 2.09 11.09.81 12.76 0 14.5 0 17.58 0 20 2.42 20 5.5c0 3.78-3.4 6.86-8.55 11.54L10 18.35z" fill="currentColor"/>
+            </svg>
+            <span class="mallem-visually-hidden">{{ 'products.product.add_to_wishlist' | t }}</span>
+          </button>
         {%- endif -%}
       </div>
     {%- endif -%}
   </div>
 
+  {%- comment -%}
+    PRODUCT INFO CONTAINER
+    Contains vendor, title, price, swatches
+  {%- endcomment -%}
   <div class="mallem-product-card__info">
-    {%- comment -%}
-      Optionally display product vendor
-      Controlled by show_vendor parameter
-    {%- endcomment -%}
 
+    {%- comment -%} Vendor (optional) {%- endcomment -%}
     {%- if show_vendor and product.vendor -%}
       <div class="mallem-product-card__vendor">
-        {{ product.vendor }}
+        <a href="{{ product.vendor | url_for_vendor }}" class="mallem-product-card__vendor-link">
+          {{ product.vendor }}
+        </a>
       </div>
     {%- endif -%}
 
-    {%- comment -%}
-      Render product title as heading
-      Linked to product page for accessibility
-    {%- endcomment -%}
-
+    {%- comment -%} Product Title {%- endcomment -%}
     <h3 class="mallem-product-card__title">
-      <a href="{{ product.url }}">
+      <a href="{{ product.url }}" class="mallem-product-card__title-link">
         {{ product.title | escape }}
       </a>
     </h3>
 
-    {%- comment -%}
-      Render product price
-      Shows sale and compare pricing when applicable
-    {%- endcomment -%}
-
-    <div class="mallem-product-card__price">
-      {%- if on_sale -%}
-        <span class="mallem-product-card__price-sale">
-          {{ product.price | money }}
-        </span>
-        <span class="mallem-product-card__price-compare">
-          {{ product.compare_at_price | money }}
-        </span>
-      {%- else -%}
-        <span class="mallem-product-card__price-regular">
-          {{ product.price | money }}
-        </span>
-      {%- endif -%}
+    {%- comment -%} Product Price (using dedicated snippet) {%- endcomment -%}
+    <div class="mallem-product-card__price-wrapper">
+      {% render 'mallem-price',
+         product: product,
+         show_compare: true,
+         show_discount: true
+      %}
     </div>
+
+    {%- comment -%}
+      VARIANT SWATCHES (optional)
+      Hook for color/size swatches - implement via separate JS module
+    {%- endcomment -%}
+    {%- if show_swatches and product.has_only_default_variant == false -%}
+      <div class="mallem-product-card__swatches" data-product-swatches="{{ product.id }}">
+        {%- comment -%}
+          Swatches rendered via JavaScript to avoid bloating HTML
+          This maintains performance when rendering 50+ products
+        {%- endcomment -%}
+      </div>
+    {%- endif -%}
+
   </div>
 </div>

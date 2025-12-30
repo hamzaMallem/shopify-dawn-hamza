@@ -1,0 +1,314 @@
+/*
+ * Component: Mallem Mega Menu
+ * Purpose: Desktop navigation with multi-column dropdown panels
+ *
+ * RTL Support: All spacing uses CSS logical properties
+ * Performance: GPU-accelerated transforms, containment where applicable
+ * Accessibility: Focus states, keyboard navigation support
+ *
+ * Architecture:
+ * - Desktop: Hover-based with <details> fallback for keyboard
+ * - Mobile: Hidden (use mobile drawer menu instead)
+ * - Grid-based columns (responsive 1-6 columns)
+ */
+
+/* ============================================================================
+   Base Menu Container
+   ========================================================================= */
+
+.mallem-mega-menu {
+  display: none;
+}
+
+@media screen and (min-width: 990px) {
+  .mallem-mega-menu {
+    display: block;
+  }
+}
+
+.mallem-mega-menu__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.mallem-mega-menu__item {
+  position: relative;
+}
+
+/* ============================================================================
+   Trigger (Top-level menu items)
+   ========================================================================= */
+
+.mallem-mega-menu__trigger,
+.mallem-mega-menu__link-simple {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-block: 1rem;
+  padding-inline: 1.2rem;
+  color: rgba(var(--color-foreground), 0.85);
+  text-decoration: none;
+  font-size: 1.4rem;
+  line-height: calc(1 + 0.3 / var(--font-body-scale));
+  cursor: pointer;
+  transition: color var(--duration-short) ease;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+}
+
+.mallem-mega-menu__trigger:hover,
+.mallem-mega-menu__link-simple:hover {
+  color: rgb(var(--color-foreground));
+}
+
+.mallem-mega-menu__trigger-text--active,
+.mallem-mega-menu__link-simple-text--active {
+  color: rgb(var(--color-foreground));
+  font-weight: 600;
+}
+
+.mallem-mega-menu__trigger-icon {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  transition: transform var(--duration-short) ease;
+}
+
+.mallem-mega-menu__trigger-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Rotate icon when menu is open */
+.mallem-mega-menu__details[open] .mallem-mega-menu__trigger-icon {
+  transform: rotate(180deg);
+}
+
+/* Focus styles for accessibility */
+.mallem-mega-menu__trigger:focus-visible,
+.mallem-mega-menu__link-simple:focus-visible {
+  outline: 0.2rem solid rgba(var(--color-foreground), 0.5);
+  outline-offset: 0.3rem;
+  border-radius: 0.2rem;
+}
+
+/* ============================================================================
+   Dropdown Panel
+   ========================================================================= */
+
+.mallem-mega-menu__details {
+  position: static;
+}
+
+.mallem-mega-menu__panel {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  top: 100%;
+  z-index: 3;
+  background-color: rgb(var(--color-background));
+  border-block-start: 0.1rem solid rgba(var(--color-foreground), 0.08);
+  overflow-y: auto;
+
+  /* Performance optimizations */
+  contain: layout style paint;
+  will-change: transform, opacity;
+}
+
+/* Sticky header adjustment */
+.shopify-section-header-sticky .mallem-mega-menu__panel {
+  max-height: calc(100vh - var(--header-bottom-position-desktop, 20rem) - 4rem);
+}
+
+/* Border handling when header has bottom border */
+.header-wrapper--border-bottom .mallem-mega-menu__panel {
+  border-block-start: 0;
+}
+
+/* Initial hidden state (before JS loads) */
+.js .mallem-mega-menu__panel {
+  opacity: 0;
+  transform: translateY(-1.5rem);
+  transition: opacity var(--duration-default) ease,
+              transform var(--duration-default) ease;
+}
+
+/* Open state */
+.mallem-mega-menu__details[open] .mallem-mega-menu__panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mallem-mega-menu__panel-inner {
+  padding-block-start: 3rem;
+  padding-block-end: 3rem;
+}
+
+/* ============================================================================
+   Column Grid System
+   ========================================================================= */
+
+.mallem-mega-menu__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 3rem 4rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Responsive columns based on content */
+@media screen and (min-width: 990px) {
+  .mallem-mega-menu__columns {
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .mallem-mega-menu__columns {
+    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+    gap: 3rem 5rem;
+  }
+}
+
+/* Single-level menu (no subcategories) - more compact */
+.mallem-mega-menu__columns--single-level {
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 2rem 3rem;
+}
+
+.mallem-mega-menu__column {
+  min-width: 0; /* Prevent grid blowout */
+}
+
+/* ============================================================================
+   Category Headings (Level 2)
+   ========================================================================= */
+
+.mallem-mega-menu__heading {
+  display: block;
+  margin-block-end: 1.2rem;
+  padding-block: 0.6rem;
+  color: rgb(var(--color-foreground));
+  font-weight: 600;
+  font-size: 1.4rem;
+  line-height: calc(1 + 0.3 / var(--font-body-scale));
+  text-decoration: none;
+  transition: color var(--duration-short) ease;
+}
+
+.mallem-mega-menu__heading:hover {
+  color: rgba(var(--color-foreground), 0.75);
+  text-decoration: underline;
+  text-decoration-thickness: 0.1rem;
+  text-underline-offset: 0.3rem;
+}
+
+/* ============================================================================
+   Subcategory Links (Level 3)
+   ========================================================================= */
+
+.mallem-mega-menu__sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.mallem-mega-menu__subitem {
+  /* No specific styles needed, just structural */
+}
+
+.mallem-mega-menu__link {
+  display: block;
+  padding-block: 0.6rem;
+  color: rgba(var(--color-foreground), 0.75);
+  font-size: 1.3rem;
+  line-height: calc(1 + 0.4 / var(--font-body-scale));
+  text-decoration: none;
+  transition: color var(--duration-short) ease,
+              padding-inline-start var(--duration-short) ease;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.mallem-mega-menu__link:hover {
+  color: rgb(var(--color-foreground));
+  padding-inline-start: 0.8rem;
+  text-decoration: underline;
+  text-decoration-thickness: 0.1rem;
+  text-underline-offset: 0.3rem;
+}
+
+/* Active link state */
+.mallem-mega-menu__link--active {
+  color: rgb(var(--color-foreground));
+  font-weight: 500;
+}
+
+.mallem-mega-menu__link--active:hover {
+  text-decoration-thickness: 0.2rem;
+}
+
+/* Focus styles for links */
+.mallem-mega-menu__heading:focus-visible,
+.mallem-mega-menu__link:focus-visible {
+  outline: 0.2rem solid rgba(var(--color-foreground), 0.5);
+  outline-offset: 0.3rem;
+  border-radius: 0.2rem;
+}
+
+/* ============================================================================
+   RTL-Specific Adjustments
+   ========================================================================= */
+
+/* Icon flip in RTL */
+[dir="rtl"] .mallem-mega-menu__trigger-icon svg {
+  transform: scaleX(-1);
+}
+
+/* Compensate for icon flip rotation */
+[dir="rtl"] .mallem-mega-menu__details[open] .mallem-mega-menu__trigger-icon svg {
+  transform: scaleX(-1) rotate(180deg);
+}
+
+/* ============================================================================
+   Performance & Accessibility
+   ========================================================================= */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .mallem-mega-menu__panel,
+  .mallem-mega-menu__trigger-icon,
+  .mallem-mega-menu__link {
+    transition: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .mallem-mega-menu__trigger:hover,
+  .mallem-mega-menu__link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 0.2rem;
+  }
+
+  .mallem-mega-menu__panel {
+    border-block-start-width: 0.2rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .mallem-mega-menu__panel {
+    display: none;
+  }
+}

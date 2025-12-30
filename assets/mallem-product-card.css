@@ -1,0 +1,612 @@
+/**
+ * ============================================================================
+ * MALLEM PRODUCT CARD SYSTEM
+ * ============================================================================
+ *
+ * Premium product card styles for the mallem Shopify theme.
+ * Built for conversion, performance, and accessibility.
+ *
+ * FEATURES:
+ * - Mobile-first responsive design
+ * - RTL-ready (CSS logical properties)
+ * - Large tap targets (44px minimum)
+ * - Smooth GPU-accelerated animations
+ * - Accessible focus states
+ * - Secondary image hover effect
+ * - Badge system
+ * - Action buttons (quick view, wishlist)
+ *
+ * ARCHITECTURE:
+ * - BEM naming convention (mallem-product-card__)
+ * - CSS custom properties for theming
+ * - No framework dependencies
+ * - Performance-optimized (will-change, transform)
+ *
+ * Author: mallem dev company
+ * Base: Shopify Dawn
+ * Version: 1.0.0
+ */
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES (THEME VARIABLES)
+   ============================================================================ */
+
+:root {
+  /* Spacing */
+  --mallem-card-spacing: 1rem;
+  --mallem-card-spacing-sm: 0.5rem;
+  --mallem-card-spacing-lg: 1.5rem;
+
+  /* Typography */
+  --mallem-card-title-size: 0.875rem;
+  --mallem-card-title-weight: 500;
+  --mallem-card-title-line-height: 1.4;
+  --mallem-card-vendor-size: 0.75rem;
+  --mallem-card-price-size: 1rem;
+  --mallem-card-price-weight: 600;
+
+  /* Colors */
+  --mallem-card-bg: #ffffff;
+  --mallem-card-text: #1a1a1a;
+  --mallem-card-text-muted: #666666;
+  --mallem-card-border: #e5e5e5;
+  --mallem-card-hover-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Transitions */
+  --mallem-card-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --mallem-card-transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-index */
+  --mallem-card-z-badges: 10;
+  --mallem-card-z-actions: 20;
+  --mallem-card-z-hover: 5;
+
+  /* Action buttons */
+  --mallem-action-size: 44px; /* Minimum tap target size */
+  --mallem-action-bg: rgba(255, 255, 255, 0.95);
+  --mallem-action-hover-bg: #ffffff;
+  --mallem-action-border-radius: 50%;
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+.mallem-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.mallem-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   PRODUCT CARD CONTAINER
+   ============================================================================ */
+
+.mallem-product-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mallem-card-bg);
+  transition: transform var(--mallem-card-transition),
+              box-shadow var(--mallem-card-transition);
+
+  /* Accessibility: Focus outline */
+  &:focus-within {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* Hover effect: Subtle lift */
+@media (hover: hover) {
+  .mallem-product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px var(--mallem-card-hover-shadow);
+  }
+}
+
+/* ============================================================================
+   MEDIA CONTAINER
+   ============================================================================ */
+
+.mallem-product-card__media {
+  position: relative;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  margin-block-end: var(--mallem-card-spacing);
+}
+
+/* Aspect Ratios (controlled by snippet parameter) */
+.mallem-product-card__media--portrait {
+  aspect-ratio: 3 / 4;
+}
+
+.mallem-product-card__media--square {
+  aspect-ratio: 1 / 1;
+}
+
+.mallem-product-card__media--landscape {
+  aspect-ratio: 4 / 3;
+}
+
+/* Media Link (covers entire image) */
+.mallem-product-card__link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+
+  /* Accessibility: Remove default outline, use parent focus-within */
+  &:focus {
+    outline: none;
+  }
+}
+
+/* ============================================================================
+   PRODUCT IMAGES
+   ============================================================================ */
+
+.mallem-product-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: opacity var(--mallem-card-transition),
+              transform var(--mallem-card-transition);
+}
+
+/* Primary Image */
+.mallem-product-card__image--primary {
+  z-index: 2;
+}
+
+/* Secondary Image (Hover Effect) */
+.mallem-product-card__image--secondary {
+  z-index: 1;
+  opacity: 0;
+}
+
+/* Hover: Show secondary image */
+@media (hover: hover) {
+  .mallem-product-card:hover .mallem-product-card__image--primary {
+    opacity: 0;
+  }
+
+  .mallem-product-card:hover .mallem-product-card__image--secondary {
+    opacity: 1;
+  }
+}
+
+/* Lazy Loading: Fade in when loaded */
+.mallem-product-card__image.lazyload {
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.mallem-product-card__image.lazyloaded {
+  opacity: 1;
+}
+
+/* Placeholder Image */
+.mallem-product-card__image--placeholder {
+  width: 100%;
+  height: 100%;
+  opacity: 0.5;
+}
+
+/* ============================================================================
+   BADGES
+   ============================================================================ */
+
+.mallem-product-card__badges {
+  position: absolute;
+  inset-block-start: var(--mallem-card-spacing-sm);
+  inset-inline-start: var(--mallem-card-spacing-sm);
+  z-index: var(--mallem-card-z-badges);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   ACTION BUTTONS
+   ============================================================================ */
+
+.mallem-product-card__actions {
+  position: absolute;
+  inset-block-start: var(--mallem-card-spacing-sm);
+  inset-inline-end: var(--mallem-card-spacing-sm);
+  z-index: var(--mallem-card-z-actions);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  /* Hidden by default, shown on hover (desktop) or always (mobile) */
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity var(--mallem-card-transition),
+              transform var(--mallem-card-transition);
+  pointer-events: none;
+}
+
+/* Always visible on touch devices */
+@media (hover: none) {
+  .mallem-product-card__actions {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+/* Show on hover (desktop) */
+@media (hover: hover) {
+  .mallem-product-card:hover .mallem-product-card__actions {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+/* Individual Action Button */
+.mallem-product-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--mallem-action-size);
+  height: var(--mallem-action-size);
+  padding: 0;
+  background-color: var(--mallem-action-bg);
+  border: 1px solid var(--mallem-card-border);
+  border-radius: var(--mallem-action-border-radius);
+  cursor: pointer;
+  transition: background-color var(--mallem-card-transition-fast),
+              transform var(--mallem-card-transition-fast),
+              box-shadow var(--mallem-card-transition-fast);
+  backdrop-filter: blur(8px);
+
+  /* Minimum tap target size for accessibility */
+  min-width: var(--mallem-action-size);
+  min-height: var(--mallem-action-size);
+
+  /* Icon sizing */
+  svg {
+    width: 20px;
+    height: 20px;
+    color: var(--mallem-card-text);
+  }
+}
+
+.mallem-product-card__action:hover,
+.mallem-product-card__action:focus {
+  background-color: var(--mallem-action-hover-bg);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mallem-product-card__action:active {
+  transform: scale(0.95);
+}
+
+/* Wishlist active state */
+.mallem-product-card__action--wishlist[data-wishlist-active="true"] svg {
+  fill: #e63946;
+  color: #e63946;
+}
+
+/* ============================================================================
+   PRODUCT INFO
+   ============================================================================ */
+
+.mallem-product-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mallem-card-spacing-sm);
+  padding-inline: var(--mallem-card-spacing-sm);
+  padding-block-end: var(--mallem-card-spacing-sm);
+}
+
+/* ============================================================================
+   VENDOR
+   ============================================================================ */
+
+.mallem-product-card__vendor {
+  margin-block-end: 0.25rem;
+}
+
+.mallem-product-card__vendor-link {
+  font-size: var(--mallem-card-vendor-size);
+  color: var(--mallem-card-text-muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color var(--mallem-card-transition-fast);
+}
+
+.mallem-product-card__vendor-link:hover {
+  color: var(--mallem-card-text);
+}
+
+/* ============================================================================
+   TITLE
+   ============================================================================ */
+
+.mallem-product-card__title {
+  margin: 0;
+  font-size: var(--mallem-card-title-size);
+  font-weight: var(--mallem-card-title-weight);
+  line-height: var(--mallem-card-title-line-height);
+
+  /* Limit to 2 lines with ellipsis */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mallem-product-card__title-link {
+  color: var(--mallem-card-text);
+  text-decoration: none;
+  transition: color var(--mallem-card-transition-fast);
+
+  /* Accessibility: Remove outline, use parent focus-within */
+  &:focus {
+    outline: none;
+  }
+}
+
+.mallem-product-card__title-link:hover {
+  color: var(--mallem-card-text-muted);
+}
+
+/* ============================================================================
+   PRICE WRAPPER
+   ============================================================================ */
+
+.mallem-product-card__price-wrapper {
+  margin-block-start: 0.25rem;
+}
+
+/* ============================================================================
+   SWATCHES CONTAINER
+   ============================================================================ */
+
+.mallem-product-card__swatches {
+  margin-block-start: 0.5rem;
+  /* Swatch styles defined in separate swatch module */
+}
+
+/* ============================================================================
+   MALLEM PRICE COMPONENT
+   ============================================================================ */
+
+.mallem-price {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: var(--mallem-card-price-size);
+  font-weight: var(--mallem-card-price-weight);
+  line-height: 1.2;
+}
+
+/* Price Label (e.g., "From") */
+.mallem-price__label {
+  font-size: 0.875em;
+  font-weight: 400;
+  color: var(--mallem-card-text-muted);
+}
+
+/* Current Price */
+.mallem-price__current {
+  color: var(--mallem-card-text);
+}
+
+/* Sale Price (red/accent color) */
+.mallem-price__current--sale {
+  color: #e63946;
+}
+
+/* Compare-at Price (strikethrough) */
+.mallem-price__compare {
+  font-size: 0.875em;
+  color: var(--mallem-card-text-muted);
+  text-decoration: line-through;
+}
+
+/* Discount Badge */
+.mallem-price__discount-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.5rem;
+  padding-block: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #e63946;
+  border-radius: 0.25rem;
+  line-height: 1;
+}
+
+/* Price Range Separator */
+.mallem-price__range-separator {
+  margin-inline: 0.25rem;
+  color: var(--mallem-card-text-muted);
+}
+
+/* Unit Price */
+.mallem-price__unit {
+  width: 100%;
+  margin-block-start: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--mallem-card-text-muted);
+  font-weight: 400;
+}
+
+/* ============================================================================
+   MALLEM BADGE COMPONENT
+   ============================================================================ */
+
+.mallem-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-inline: 0.625rem;
+  padding-block: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  border-radius: 0.25rem;
+  backdrop-filter: blur(8px);
+  max-width: max-content;
+}
+
+/* Badge Icon */
+.mallem-badge__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+}
+
+/* Badge Text */
+.mallem-badge__text {
+  white-space: nowrap;
+}
+
+/* Badge Variants */
+
+/* Sale Badge */
+.mallem-badge--sale {
+  color: #ffffff;
+  background-color: #e63946;
+}
+
+/* Sold Out Badge */
+.mallem-badge--soldout {
+  color: #ffffff;
+  background-color: #6c757d;
+}
+
+/* COD Badge */
+.mallem-badge--cod {
+  color: #155724;
+  background-color: rgba(40, 167, 69, 0.15);
+  border: 1px solid #28a745;
+}
+
+/* New Badge */
+.mallem-badge--new {
+  color: #004085;
+  background-color: rgba(0, 123, 255, 0.15);
+  border: 1px solid #007bff;
+}
+
+/* Hot Badge */
+.mallem-badge--hot {
+  color: #721c24;
+  background-color: rgba(220, 53, 69, 0.15);
+  border: 1px solid #dc3545;
+}
+
+/* Preorder Badge */
+.mallem-badge--preorder {
+  color: #856404;
+  background-color: rgba(255, 193, 7, 0.15);
+  border: 1px solid #ffc107;
+}
+
+/* Limited Badge */
+.mallem-badge--limited {
+  color: #383d41;
+  background-color: rgba(108, 117, 125, 0.15);
+  border: 1px solid #6c757d;
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+
+/* Tablet (768px+) */
+@media screen and (min-width: 768px) {
+  :root {
+    --mallem-card-spacing: 1.25rem;
+    --mallem-card-title-size: 0.9375rem;
+    --mallem-card-price-size: 1.0625rem;
+  }
+
+  .mallem-badge {
+    font-size: 0.75rem;
+    padding-inline: 0.75rem;
+    padding-block: 0.4375rem;
+  }
+}
+
+/* Desktop (1024px+) */
+@media screen and (min-width: 1024px) {
+  :root {
+    --mallem-card-spacing: 1.5rem;
+    --mallem-card-title-size: 1rem;
+    --mallem-card-price-size: 1.125rem;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .mallem-product-card__actions,
+  .mallem-product-card__image--secondary {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .mallem-product-card,
+  .mallem-product-card__image,
+  .mallem-product-card__action,
+  .mallem-product-card__actions,
+  .mallem-product-card__vendor-link,
+  .mallem-product-card__title-link {
+    transition: none !important;
+  }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================ */
+
+@media (prefers-contrast: high) {
+  .mallem-product-card {
+    border: 2px solid currentColor;
+  }
+
+  .mallem-product-card__action {
+    border-width: 2px;
+  }
+}

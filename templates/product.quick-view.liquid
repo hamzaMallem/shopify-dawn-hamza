@@ -1,0 +1,613 @@
+{%- comment -%}
+  ============================================================================
+  MALLEM QUICK VIEW PRODUCT TEMPLATE
+  ============================================================================
+
+  Lightweight product template optimized for Quick View modal.
+  Accessed via /products/{handle}?view=quick-view
+
+  PURPOSE:
+  - Minimal markup for AJAX-loaded modal content
+  - No header, footer, or layout wrappers
+  - Performance-optimized (single image, minimal DOM)
+  - Reuses existing mallem snippets
+
+  ARCHITECTURE:
+  - NOT a replacement for full product page
+  - Dedicated only for Quick View modal
+  - Uses Shopify product form pattern
+  - Variant selection updates price/availability/image
+
+  RTL & ACCESSIBILITY:
+  - Semantic HTML with proper form structure
+  - ARIA labels for screen readers
+  - Keyboard accessible controls
+  - RTL-ready via CSS logical properties
+
+{%- endcomment -%}
+
+{%- liquid
+  # Get first available variant (or first variant if all sold out)
+  # Why: Quick view shows single state, not variant grid
+  assign current_variant = product.selected_or_first_available_variant
+
+  # Check product availability
+  assign product_available = false
+  if product.available
+    assign product_available = true
+  endif
+
+  # Get featured image (variant image or product image)
+  # Why: Shows variant-specific image if available
+  assign featured_image = current_variant.featured_media.preview_image | default: product.featured_media.preview_image
+-%}
+
+{%- comment -%}
+  Product Form
+  Standard Shopify cart form pattern
+  Why: Enables variant selection and add to cart functionality
+{%- endcomment -%}
+<form
+  method="post"
+  action="/cart/add"
+  id="quick-view-product-form"
+  accept-charset="UTF-8"
+  class="mallem-quick-view-product"
+  enctype="multipart/form-data"
+  novalidate="novalidate"
+  data-type="add-to-cart-form">
+
+  {%- comment -%} Shopify form authenticity token {%- endcomment -%}
+  <input type="hidden" name="form_type" value="product">
+  <input type="hidden" name="utf8" value="✓">
+
+  <div class="mallem-quick-view-product__inner">
+
+    {%- comment -%}
+      PRODUCT MEDIA
+      Single image for performance
+      Why: Modal space is limited, multiple images add complexity
+      Data attribute enables JS to update image on variant change
+    {%- endcomment -%}
+    {%- if featured_image -%}
+      <div class="mallem-quick-view-product__media">
+        <img
+          src="{{ featured_image | image_url: width: 800 }}"
+          srcset="{{ featured_image | image_url: width: 400 }} 400w,
+                  {{ featured_image | image_url: width: 600 }} 600w,
+                  {{ featured_image | image_url: width: 800 }} 800w"
+          sizes="(min-width: 750px) 50vw, 100vw"
+          alt="{{ featured_image.alt | escape }}"
+          width="{{ featured_image.width }}"
+          height="{{ featured_image.height }}"
+          loading="lazy"
+          class="mallem-quick-view-product__image"
+          data-product-image>
+      </div>
+    {%- else -%}
+      {%- comment -%} Fallback placeholder if no image {%- endcomment -%}
+      <div class="mallem-quick-view-product__media">
+        {{ 'product-1' | placeholder_svg_tag: 'mallem-quick-view-product__image' }}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%}
+      PRODUCT INFO
+      Title, price, variants, add to cart
+    {%- endcomment -%}
+    <div class="mallem-quick-view-product__info">
+
+      {%- comment -%} Product Title {%- endcomment -%}
+      <h2 class="mallem-quick-view-product__title product__title">
+        {{ product.title | escape }}
+      </h2>
+
+      {%- comment -%}
+        Product Price
+        Data attribute enables JS to update price on variant change
+        Why: Price changes based on selected variant
+      {%- endcomment -%}
+      <div class="mallem-quick-view-product__price" data-product-price>
+        {%- liquid
+          assign on_sale = false
+          if current_variant.compare_at_price > current_variant.price
+            assign on_sale = true
+          endif
+        -%}
+
+        {%- if on_sale -%}
+          <span class="mallem-price__current mallem-price__current--sale">
+            <span class="mallem-visually-hidden">{{ 'products.price.sale_price' | t }}</span>
+            {{ current_variant.price | money }}
+          </span>
+          <s class="mallem-price__compare">
+            <span class="mallem-visually-hidden">{{ 'products.price.regular_price' | t }}</span>
+            {{ current_variant.compare_at_price | money }}
+          </s>
+          <span class="mallem-price__discount-badge">
+            -{%- liquid
+              assign discount = current_variant.compare_at_price | minus: current_variant.price
+              assign discount_pct = discount | times: 100.0 | divided_by: current_variant.compare_at_price | round
+            -%}{{ discount_pct }}%
+          </span>
+        {%- else -%}
+          <span class="mallem-price__current">
+            <span class="mallem-visually-hidden">{{ 'products.price.regular_price' | t }}</span>
+            {{ current_variant.price | money }}
+          </span>
+        {%- endif -%}
+      </div>
+
+      {%- comment -%}
+        VARIANT SELECTOR
+        Only shown if product has multiple variants
+        Why: Single variant products don't need selection UI
+        Data attributes enable JS to track selected options
+      {%- endcomment -%}
+      {%- unless product.has_only_default_variant -%}
+        <div class="mallem-quick-view-product__variants">
+          {%- for option in product.options_with_values -%}
+            <div class="mallem-quick-view-product__option">
+              <label
+                for="quick-view-option-{{ option.position }}"
+                class="mallem-quick-view-product__option-label">
+                {{ option.name }}:
+                <span class="mallem-quick-view-product__option-value" data-option-value="{{ option.position }}">
+                  {{ option.selected_value }}
+                </span>
+              </label>
+              <select
+                id="quick-view-option-{{ option.position }}"
+                name="options[{{ option.name | escape }}]"
+                class="mallem-quick-view-product__option-select"
+                data-option-select="{{ option.position }}"
+                form="quick-view-product-form">
+                {%- for value in option.values -%}
+                  <option
+                    value="{{ value | escape }}"
+                    {% if option.selected_value == value %}selected="selected"{% endif %}>
+                    {{ value }}
+                  </option>
+                {%- endfor -%}
+              </select>
+            </div>
+          {%- endfor -%}
+        </div>
+      {%- endunless -%}
+
+      {%- comment -%}
+        Hidden variant ID input
+        Updated by variant selection JS
+        Why: Form submits variant ID, not option values
+      {%- endcomment -%}
+      <input
+        type="hidden"
+        name="id"
+        value="{{ current_variant.id }}"
+        data-variant-id>
+
+      {%- comment -%}
+        QUANTITY SELECTOR
+        Standard Shopify quantity input
+        Why: Users may want multiple quantities
+      {%- endcomment -%}
+      <div class="mallem-quick-view-product__quantity">
+        <label
+          for="quick-view-quantity"
+          class="mallem-quick-view-product__quantity-label">
+          {{ 'products.product.quantity.label' | t }}
+        </label>
+        <input
+          type="number"
+          id="quick-view-quantity"
+          name="quantity"
+          value="1"
+          min="1"
+          class="mallem-quick-view-product__quantity-input"
+          form="quick-view-product-form"
+          aria-label="{{ 'products.product.quantity.input_label' | t: product: product.title }}">
+      </div>
+
+      {%- comment -%}
+        ADD TO CART BUTTON
+        Data attribute enables JS to update disabled state
+        Why: Button state changes based on variant availability
+      {%- endcomment -%}
+      <div class="mallem-quick-view-product__actions">
+        <button
+          type="submit"
+          name="add"
+          class="mallem-quick-view-product__add-button button button--primary"
+          {% unless current_variant.available %}disabled{% endunless %}
+          data-add-button
+          form="quick-view-product-form">
+          <span data-button-text>
+            {%- if current_variant.available -%}
+              {{ 'products.product.add_to_cart' | t }}
+            {%- else -%}
+              {{ 'products.product.sold_out' | t }}
+            {%- endif -%}
+          </span>
+        </button>
+      </div>
+
+      {%- comment -%}
+        PRODUCT DESCRIPTION (Truncated)
+        Optional: First 30 words for context
+        Why: Full description adds bulk, excerpt provides context
+      {%- endcomment -%}
+      {%- if product.description != blank -%}
+        <div class="mallem-quick-view-product__description">
+          {{ product.description | strip_html | truncatewords: 30 }}
+        </div>
+      {%- endif -%}
+
+      {%- comment -%}
+        VIEW FULL DETAILS LINK
+        Links to full product page
+        Why: Users may want complete product info
+      {%- endcomment -%}
+      <div class="mallem-quick-view-product__full-details">
+        <a
+          href="{{ product.url }}"
+          class="mallem-quick-view-product__full-details-link">
+          {{ 'products.product.view_full_details' | t }}
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
+</form>
+
+{%- comment -%}
+  VARIANT SELECTION JAVASCRIPT
+  Minimal inline script for variant updates
+  Why: Updates price, image, and availability on variant change
+{%- endcomment -%}
+{%- unless product.has_only_default_variant -%}
+<script>
+(function() {
+  'use strict';
+
+  // Product variants data
+  // Why: Used to match selected options to variant
+  const variants = {{ product.variants | json }};
+  const productImages = {};
+
+  // Build image lookup by variant ID
+  // Why: Fast image lookup without DOM queries
+  variants.forEach(variant => {
+    if (variant.featured_image) {
+      productImages[variant.id] = variant.featured_image.src;
+    }
+  });
+
+  // Cache DOM elements
+  // Why: Avoid repeated queries, better performance
+  const optionSelects = document.querySelectorAll('[data-option-select]');
+  const variantIdInput = document.querySelector('[data-variant-id]');
+  const priceContainer = document.querySelector('[data-product-price]');
+  const productImage = document.querySelector('[data-product-image]');
+  const addButton = document.querySelector('[data-add-button]');
+  const buttonText = document.querySelector('[data-button-text]');
+
+  // Translations
+  // Why: Maintain i18n compatibility
+  const translations = {
+    addToCart: {{ 'products.product.add_to_cart' | t | json }},
+    soldOut: {{ 'products.product.sold_out' | t | json }},
+    salePrice: {{ 'products.price.sale_price' | t | json }},
+    regularPrice: {{ 'products.price.regular_price' | t | json }}
+  };
+
+  /**
+   * Get currently selected options
+   * @returns {Array} Selected option values
+   */
+  function getSelectedOptions() {
+    return Array.from(optionSelects).map(select => select.value);
+  }
+
+  /**
+   * Find variant matching selected options
+   * @param {Array} selectedOptions - Selected option values
+   * @returns {Object|null} Matching variant or null
+   */
+  function findMatchingVariant(selectedOptions) {
+    return variants.find(variant => {
+      // Check if all variant options match selected options
+      // Why: Variant must match all option positions
+      return variant.options.every((option, index) => {
+        return option === selectedOptions[index];
+      });
+    });
+  }
+
+  /**
+   * Update price display
+   * @param {Object} variant - Selected variant
+   */
+  function updatePrice(variant) {
+    if (!priceContainer) return;
+
+    const onSale = variant.compare_at_price && variant.compare_at_price > variant.price;
+    let priceHTML = '';
+
+    if (onSale) {
+      // Calculate discount percentage
+      const discount = variant.compare_at_price - variant.price;
+      const discountPct = Math.round((discount / variant.compare_at_price) * 100);
+
+      priceHTML = `
+        <span class="mallem-price__current mallem-price__current--sale">
+          <span class="mallem-visually-hidden">${translations.salePrice}</span>
+          ${formatMoney(variant.price)}
+        </span>
+        <s class="mallem-price__compare">
+          <span class="mallem-visually-hidden">${translations.regularPrice}</span>
+          ${formatMoney(variant.compare_at_price)}
+        </s>
+        <span class="mallem-price__discount-badge">-${discountPct}%</span>
+      `;
+    } else {
+      priceHTML = `
+        <span class="mallem-price__current">
+          <span class="mallem-visually-hidden">${translations.regularPrice}</span>
+          ${formatMoney(variant.price)}
+        </span>
+      `;
+    }
+
+    priceContainer.innerHTML = priceHTML;
+  }
+
+  /**
+   * Format money using Shopify format
+   * @param {Number} cents - Price in cents
+   * @returns {String} Formatted price
+   */
+  function formatMoney(cents) {
+    // Use Shopify's money format if available, otherwise basic format
+    // Why: Respects merchant's currency settings
+    if (typeof Shopify !== 'undefined' && Shopify.formatMoney) {
+      return Shopify.formatMoney(cents);
+    }
+    return '{{ shop.money_format }}'.replace(/\{\{\s*amount\s*\}\}/, (cents / 100).toFixed(2));
+  }
+
+  /**
+   * Update product image
+   * @param {Object} variant - Selected variant
+   */
+  function updateImage(variant) {
+    if (!productImage || !variant.featured_image) return;
+
+    const imageSrc = variant.featured_image.src;
+    const imageWidth = 800;
+
+    // Update image src and srcset
+    // Why: Maintains responsive images
+    productImage.src = imageSrc.replace(/\.jpg|\.png|\.gif/, (match) => `_${imageWidth}x${match}`);
+    productImage.srcset = `
+      ${imageSrc.replace(/\.jpg|\.png|\.gif/, (match) => `_400x${match}`)} 400w,
+      ${imageSrc.replace(/\.jpg|\.png|\.gif/, (match) => `_600x${match}`)} 600w,
+      ${imageSrc.replace(/\.jpg|\.png|\.gif/, (match) => `_800x${match}`)} 800w
+    `.trim();
+    productImage.alt = variant.featured_image.alt || '';
+  }
+
+  /**
+   * Update add to cart button
+   * @param {Object} variant - Selected variant
+   */
+  function updateButton(variant) {
+    if (!addButton || !buttonText) return;
+
+    if (variant.available) {
+      // Enable button
+      addButton.disabled = false;
+      buttonText.textContent = translations.addToCart;
+    } else {
+      // Disable button
+      addButton.disabled = true;
+      buttonText.textContent = translations.soldOut;
+    }
+  }
+
+  /**
+   * Handle variant change
+   * Called when user selects different option
+   */
+  function handleVariantChange() {
+    const selectedOptions = getSelectedOptions();
+    const variant = findMatchingVariant(selectedOptions);
+
+    if (!variant) {
+      // No matching variant found (shouldn't happen with valid product)
+      console.warn('No matching variant found');
+      return;
+    }
+
+    // Update hidden variant ID input
+    // Why: Form needs correct variant ID for add to cart
+    if (variantIdInput) {
+      variantIdInput.value = variant.id;
+    }
+
+    // Update UI elements
+    updatePrice(variant);
+    updateImage(variant);
+    updateButton(variant);
+
+    // Update selected value labels
+    // Why: Shows current selection next to option name
+    selectedOptions.forEach((value, index) => {
+      const label = document.querySelector(`[data-option-value="${index + 1}"]`);
+      if (label) {
+        label.textContent = value;
+      }
+    });
+  }
+
+  // Attach change listeners to all option selects
+  // Why: Trigger updates when user changes selection
+  optionSelects.forEach(select => {
+    select.addEventListener('change', handleVariantChange);
+  });
+
+})();
+</script>
+{%- endunless -%}
+
+{%- comment -%}
+  INLINE STYLES
+  Minimal styling for layout
+  Why: Quick view CSS may not be loaded immediately, ensures usable fallback
+{%- endcomment -%}
+<style>
+  .mallem-quick-view-product__inner {
+    display: grid;
+    gap: 2rem;
+  }
+
+  .mallem-quick-view-product__media {
+    position: relative;
+    width: 100%;
+  }
+
+  .mallem-quick-view-product__image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .mallem-quick-view-product__info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .mallem-quick-view-product__title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .mallem-quick-view-product__price {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .mallem-price__current {
+    color: #000;
+  }
+
+  .mallem-price__current--sale {
+    color: #e63946;
+  }
+
+  .mallem-price__compare {
+    font-size: 0.875em;
+    color: #666;
+    text-decoration: line-through;
+  }
+
+  .mallem-price__discount-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: #e63946;
+    border-radius: 0.25rem;
+  }
+
+  .mallem-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .mallem-quick-view-product__option,
+  .mallem-quick-view-product__quantity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mallem-quick-view-product__option-label,
+  .mallem-quick-view-product__quantity-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .mallem-quick-view-product__option-select,
+  .mallem-quick-view-product__quantity-input {
+    padding: 0.75rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  .mallem-quick-view-product__quantity-input {
+    width: 100px;
+  }
+
+  .mallem-quick-view-product__add-button {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background-color: #000;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .mallem-quick-view-product__add-button:not(:disabled):hover {
+    background-color: #333;
+  }
+
+  .mallem-quick-view-product__add-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  .mallem-quick-view-product__description {
+    font-size: 0.875rem;
+    color: #666;
+    line-height: 1.6;
+  }
+
+  .mallem-quick-view-product__full-details-link {
+    font-size: 0.875rem;
+    text-decoration: underline;
+    color: #000;
+  }
+
+  /* Desktop: Two column layout */
+  @media screen and (min-width: 750px) {
+    .mallem-quick-view-product__inner {
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+  }
+</style>

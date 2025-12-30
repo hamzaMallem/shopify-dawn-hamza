@@ -1,35 +1,163 @@
+{%- comment -%}
+  ============================================================================
+  MALLEM PRICE
+  ============================================================================
+
+  Premium price display component with sale pricing, compare-at, and discount badges.
+  Supports single products, variants, and price ranges.
+
+  PARAMETERS:
+  - product {Object} Required. Shopify product object
+  - variant {Object} Optional. Specific variant to show price for
+  - show_compare {Boolean} Display compare-at price. Default: true
+  - show_discount {Boolean} Display discount percentage badge. Default: false
+  - show_range {Boolean} Show price range for products with variants. Default: false
+  - price_class {String} Additional CSS classes. Default: ''
+
+  USAGE:
+  {# Single product price #}
+  {% render 'mallem-price', product: product %}
+
+  {# With discount badge #}
+  {% render 'mallem-price',
+     product: product,
+     show_discount: true
+  %}
+
+  {# Specific variant price #}
+  {% render 'mallem-price',
+     product: product,
+     variant: current_variant
+  %}
+
+  {# Price range for variable products #}
+  {% render 'mallem-price',
+     product: product,
+     show_range: true
+  %}
+
+  ARCHITECTURE:
+  - Flexible pricing logic (product or variant)
+  - Semantic HTML with proper microdata
+  - RTL-ready (logical properties in CSS)
+  - No hardcoded text (translation keys)
+
+{%- endcomment -%}
+
 {%- liquid
+  # Set default parameter values
   assign show_compare = show_compare | default: true
   assign show_discount = show_discount | default: false
+  assign show_range = show_range | default: false
+  assign price_class = price_class | default: ''
 
+  # Determine which price to display
+  if variant
+    assign target_variant = variant
+  else
+    assign target_variant = product.selected_or_first_available_variant
+  endif
+
+  # Calculate sale state
   assign on_sale = false
-  if product.compare_at_price > product.price
+  assign current_price = target_variant.price
+  assign compare_price = target_variant.compare_at_price
+
+  if compare_price > current_price
     assign on_sale = true
+  endif
+
+  # Calculate discount percentage
+  if on_sale
+    assign discount_amount = compare_price | minus: current_price
+    assign discount_percentage = discount_amount | times: 100.0 | divided_by: compare_price | round
+  endif
+
+  # Check if product has price range (multiple variants with different prices)
+  assign has_price_range = false
+  if show_range and product.price_varies
+    assign has_price_range = true
   endif
 -%}
 
-<div class="mallem-price">
-  {%- if on_sale -%}
-    <span class="mallem-price__current mallem-price__current--sale">
-      {{ product.price | money }}
+{%- comment -%} Price Container {%- endcomment -%}
+<div class="mallem-price {{ price_class }}"
+     data-price-wrapper>
+
+  {%- if has_price_range -%}
+    {%- comment -%}
+      PRICE RANGE MODE
+      Display "From X" when product has multiple variant prices
+    {%- endcomment -%}
+    <span class="mallem-price__label">
+      {{ 'products.price.from' | t }}
     </span>
-
-    {%- if show_compare -%}
-      <s class="mallem-price__compare">
-        {{ product.compare_at_price | money }}
-      </s>
-    {%- endif -%}
-
-    {%- if show_discount -%}
-      {%- assign discount = product.compare_at_price | minus: product.price -%}
-      {%- assign discount_percentage = discount | times: 100.0 | divided_by: product.compare_at_price | round -%}
-      <span class="mallem-price__discount">
-        -{{ discount_percentage }}%
+    <span class="mallem-price__current" data-price-min>
+      {{ product.price_min | money }}
+    </span>
+    {%- if product.price_max != product.price_min -%}
+      <span class="mallem-price__range-separator">-</span>
+      <span class="mallem-price__current" data-price-max>
+        {{ product.price_max | money }}
       </span>
     {%- endif -%}
+
   {%- else -%}
-    <span class="mallem-price__current">
-      {{ product.price | money }}
-    </span>
+    {%- comment -%}
+      STANDARD PRICE MODE
+      Single price or selected variant price
+    {%- endcomment -%}
+
+    {%- if on_sale -%}
+      {%- comment -%} Sale Price {%- endcomment -%}
+      <span class="mallem-price__current mallem-price__current--sale"
+            data-price="{{ current_price }}">
+        <span class="mallem-visually-hidden">{{ 'products.price.sale_price' | t }}</span>
+        {{ current_price | money }}
+      </span>
+
+      {%- if show_compare -%}
+        {%- comment -%} Compare-at Price {%- endcomment -%}
+        <s class="mallem-price__compare"
+           data-compare-price="{{ compare_price }}">
+          <span class="mallem-visually-hidden">{{ 'products.price.regular_price' | t }}</span>
+          {{ compare_price | money }}
+        </s>
+      {%- endif -%}
+
+      {%- if show_discount -%}
+        {%- comment -%} Discount Badge {%- endcomment -%}
+        <span class="mallem-price__discount-badge"
+              data-discount="{{ discount_percentage }}">
+          -{{ discount_percentage }}%
+        </span>
+      {%- endif -%}
+
+    {%- else -%}
+      {%- comment -%} Regular Price {%- endcomment -%}
+      <span class="mallem-price__current"
+            data-price="{{ current_price }}">
+        <span class="mallem-visually-hidden">{{ 'products.price.regular_price' | t }}</span>
+        {{ current_price | money }}
+      </span>
+    {%- endif -%}
+
   {%- endif -%}
+
+  {%- comment -%}
+    Unit Price (if available)
+    Commonly used in MENA markets for weight-based products
+  {%- endcomment -%}
+  {%- if target_variant.unit_price_measurement -%}
+    <div class="mallem-price__unit">
+      <span class="mallem-visually-hidden">{{ 'products.price.unit_price' | t }}</span>
+      {{ target_variant.unit_price | money }}
+      /
+      {%- if target_variant.unit_price_measurement.reference_value != 1 -%}
+        {{ target_variant.unit_price_measurement.reference_value }}
+      {%- endif -%}
+      {{ target_variant.unit_price_measurement.reference_unit }}
+    </div>
+  {%- endif -%}
+
 </div>

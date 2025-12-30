@@ -257,6 +257,8 @@
 
     {{ 'base.css' | asset_url | stylesheet_tag }}
     {{ 'mallem-rtl.css' | asset_url | stylesheet_tag }}
+    {{ 'mallem-product-card.css' | asset_url | stylesheet_tag }}
+    {{ 'mallem-quick-view.css' | asset_url | stylesheet_tag }}
     <link rel="stylesheet" href="{{ 'component-cart-items.css' | asset_url }}" media="print" onload="this.media='all'">
 
     {%- if settings.cart_type == 'drawer' -%}
@@ -307,6 +309,22 @@
     {%- if settings.cart_type == 'drawer' -%}
       {%- render 'cart-drawer' -%}
     {%- endif -%}
+
+    {%- comment -%}
+      MALLEM MOBILE MENU DRAWER
+      WHY here: Must be in DOM before header renders (for triggers)
+      USED BY: Desktop language icon, mobile hamburger icon
+      PATTERN: Kalles-style drawer for all contextual controls
+    {%- endcomment -%}
+    {%- render 'mallem-mobile-menu' -%}
+
+    {%- comment -%}
+      MALLEM CART DRAWER
+      WHY here: Must be in DOM globally (single instance, always available)
+      USED BY: Add-to-cart forms, cart icon triggers
+      PATTERN: Kalles-style slide-in cart with AJAX operations
+    {%- endcomment -%}
+    {%- render 'mallem-cart-drawer' -%}
 
     {% sections 'header-group' %}
 
@@ -373,5 +391,25 @@
     {%- if settings.cart_type == 'drawer' -%}
       <script src="{{ 'cart-drawer.js' | asset_url }}" defer="defer"></script>
     {%- endif -%}
+
+    {%- comment -%}
+      MALLEM MOBILE MENU DRAWER ASSETS
+      WHY defer: Non-blocking load, executes after DOM ready
+      CRITICAL: Script initializes drawer globally (desktop + mobile)
+    {%- endcomment -%}
+    <link rel="stylesheet" href="{{ 'mallem-mobile-menu.css' | asset_url }}">
+    <script src="{{ 'mallem-mobile-menu.js' | asset_url }}" defer="defer"></script>
+
+    {%- comment -%}
+      MALLEM CART DRAWER ASSETS
+      WHY defer: Non-blocking load, executes after DOM ready
+      CRITICAL: Script intercepts add-to-cart forms globally, provides AJAX cart operations
+    {%- endcomment -%}
+    <link rel="stylesheet" href="{{ 'mallem-cart-drawer.css' | asset_url }}">
+    <script src="{{ 'mallem-cart-drawer.js' | asset_url }}" defer="defer"></script>
+
+    {%- comment -%} Mallem Quick View Modal {%- endcomment -%}
+    {% render 'mallem-quick-view-modal' %}
+    <script src="{{ 'mallem-quick-view.js' | asset_url }}" defer="defer"></script>
   </body>
 </html>

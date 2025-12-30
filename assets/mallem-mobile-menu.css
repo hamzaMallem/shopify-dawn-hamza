@@ -1,0 +1,395 @@
+/*
+  Mobile Menu Drawer Styles
+
+  WHY logical properties:
+  - Drawer slides from start (left in LTR, right in RTL)
+  - All spacing uses inline-start/end for automatic RTL flipping
+  - No directional overrides needed
+
+  WHY CSS animations only:
+  - GPU-accelerated transform is faster than JS
+  - No layout reflows during animation
+  - Smooth 60fps on mobile devices
+
+  WHY mobile-only:
+  - Desktop has dedicated mega menu
+  - No code duplication between breakpoints
+  - Reduced bundle size
+*/
+
+/* Container - covers full viewport */
+.mallem-mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Show menu when active */
+.mallem-mobile-menu[aria-hidden="false"] {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Overlay - semi-transparent backdrop */
+.mallem-mobile-menu__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Drawer - slides in from inline-start (left LTR, right RTL) */
+.mallem-mobile-menu__drawer {
+  position: absolute;
+  inset-block-start: 0;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  inline-size: min(85vw, 400px); /* Max 400px, scales down on small screens */
+  background-color: rgb(var(--color-background));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+
+  /* WHY transform: GPU-accelerated, no reflow */
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* RTL: Slide from opposite side */
+[dir="rtl"] .mallem-mobile-menu__drawer {
+  transform: translateX(100%);
+}
+
+/* Active state - drawer visible */
+.mallem-mobile-menu[aria-hidden="false"] .mallem-mobile-menu__drawer {
+  transform: translateX(0);
+}
+
+/* Header - close button row */
+.mallem-mobile-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-block-end: 1px solid rgba(var(--color-foreground), 0.1);
+  flex-shrink: 0; /* Don't compress header */
+}
+
+.mallem-mobile-menu__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: rgb(var(--color-foreground));
+}
+
+/* Close button - 44px tap target (Apple HIG minimum) */
+.mallem-mobile-menu__close {
+  inline-size: 44px;
+  block-size: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: rgb(var(--color-foreground));
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mallem-mobile-menu__close:hover,
+.mallem-mobile-menu__close:focus-visible {
+  background-color: rgba(var(--color-foreground), 0.05);
+}
+
+.mallem-mobile-menu__close:focus-visible {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: 2px;
+}
+
+/* Search section - optional */
+.mallem-mobile-menu__search {
+  padding: 1rem 1.5rem;
+  border-block-end: 1px solid rgba(var(--color-foreground), 0.1);
+  flex-shrink: 0;
+}
+
+/* Language switcher section - mobile-only placement */
+/* WHY separate container: Visual separation from navigation */
+/* WHY top placement: Language selection is a global setting, shown before content */
+.mallem-mobile-menu__language {
+  padding: 1rem 1.5rem;
+  border-block-end: 1px solid rgba(var(--color-foreground), 0.1);
+  flex-shrink: 0;
+  background-color: rgba(var(--color-foreground), 0.02); /* Subtle background for distinction */
+}
+
+/* Override inline styles from mallem-language-switcher snippet for mobile context */
+/* WHY override: Mobile menu needs full-width touch targets */
+.mallem-mobile-menu__language .mallem-language-switcher {
+  display: block;
+  inline-size: 100%;
+}
+
+.mallem-mobile-menu__language .mallem-language-switcher__wrapper {
+  display: block;
+  inline-size: 100%;
+}
+
+/* WHY 44px: Apple HIG minimum touch target, consistent with mobile menu buttons */
+/* WHY full-width: Mobile-first design, easier to tap */
+.mallem-mobile-menu__language .mallem-language-switcher__select {
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding-block: 0.75rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 2.5rem; /* Space for icon */
+  font-size: 1rem; /* Larger for mobile readability */
+  border: 1px solid rgba(var(--color-foreground), 0.2);
+  border-radius: 0.5rem;
+  background-color: rgb(var(--color-background));
+  color: rgb(var(--color-foreground));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mallem-mobile-menu__language .mallem-language-switcher__select:hover,
+.mallem-mobile-menu__language .mallem-language-switcher__select:focus {
+  border-color: rgb(var(--color-foreground));
+}
+
+.mallem-mobile-menu__language .mallem-language-switcher__select:focus {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: 2px;
+}
+
+/* Icon positioning - RTL-aware via logical properties */
+.mallem-mobile-menu__language .mallem-language-switcher__icon {
+  inset-inline-end: 1rem; /* More space from edge on mobile */
+}
+
+.mallem-mobile-menu__search form {
+  position: relative;
+}
+
+.mallem-mobile-menu__search-input {
+  inline-size: 100%;
+  block-size: 44px; /* Touch-friendly */
+  padding-inline-start: 1rem;
+  padding-inline-end: 3rem; /* Space for button */
+  border: 1px solid rgba(var(--color-foreground), 0.2);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background-color: rgb(var(--color-background));
+  color: rgb(var(--color-foreground));
+  transition: border-color 0.2s ease;
+}
+
+.mallem-mobile-menu__search-input:focus {
+  outline: none;
+  border-color: rgb(var(--color-foreground));
+}
+
+.mallem-mobile-menu__search-input::placeholder {
+  color: rgba(var(--color-foreground), 0.5);
+}
+
+.mallem-mobile-menu__search-btn {
+  position: absolute;
+  inset-inline-end: 0.25rem;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  inline-size: 40px;
+  block-size: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: rgb(var(--color-foreground));
+  cursor: pointer;
+  border-radius: 0.25rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mallem-mobile-menu__search-btn:hover,
+.mallem-mobile-menu__search-btn:focus-visible {
+  background-color: rgba(var(--color-foreground), 0.05);
+}
+
+/* Navigation - scrollable area */
+.mallem-mobile-menu__nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  overscroll-behavior: contain; /* Prevent scroll chaining */
+}
+
+/* Menu lists */
+.mallem-mobile-menu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mallem-mobile-menu__submenu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* WHY hidden attribute: Accessible by default, JS will remove */
+}
+
+/* Menu items */
+.mallem-mobile-menu__item {
+  border-block-end: 1px solid rgba(var(--color-foreground), 0.08);
+}
+
+/* Link wrapper - contains link + toggle button */
+.mallem-mobile-menu__link-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mallem-mobile-menu__link-wrapper .mallem-mobile-menu__link {
+  flex: 1; /* Take remaining space */
+}
+
+/* Links - 44px minimum tap target */
+.mallem-mobile-menu__link {
+  display: block;
+  padding: 1rem 1.5rem;
+  min-block-size: 44px;
+  display: flex;
+  align-items: center;
+  color: rgb(var(--color-foreground));
+  text-decoration: none;
+  font-size: 1rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mallem-mobile-menu__link:hover,
+.mallem-mobile-menu__link:focus-visible {
+  background-color: rgba(var(--color-foreground), 0.05);
+}
+
+.mallem-mobile-menu__link:focus-visible {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: -2px;
+}
+
+/* Submenu links - indented for visual hierarchy */
+.mallem-mobile-menu__submenu .mallem-mobile-menu__link {
+  padding-inline-start: 2.5rem; /* Level 2 indent */
+}
+
+.mallem-mobile-menu__submenu .mallem-mobile-menu__submenu .mallem-mobile-menu__link {
+  padding-inline-start: 3.5rem; /* Level 3 indent */
+  font-size: 0.9375rem; /* Slightly smaller for hierarchy */
+}
+
+/* Toggle button - accordion icon */
+.mallem-mobile-menu__toggle {
+  inline-size: 44px;
+  block-size: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: rgb(var(--color-foreground));
+  cursor: pointer;
+  margin-inline-end: 0.5rem;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mallem-mobile-menu__toggle:hover,
+.mallem-mobile-menu__toggle:focus-visible {
+  background-color: rgba(var(--color-foreground), 0.05);
+}
+
+.mallem-mobile-menu__toggle:focus-visible {
+  outline: 2px solid rgb(var(--color-foreground));
+  outline-offset: -2px;
+}
+
+/* WHY rotate: Visual indicator of open/closed state */
+.mallem-mobile-menu__toggle[aria-expanded="true"] {
+  transform: rotate(180deg);
+}
+
+/* Submenu accordion animation */
+.mallem-mobile-menu__submenu {
+  /* WHY max-height: Allows CSS-only accordion animation */
+  max-block-size: 0;
+  overflow: hidden;
+  transition: max-block-size 0.3s ease;
+}
+
+.mallem-mobile-menu__submenu:not([hidden]) {
+  max-block-size: 2000px; /* Arbitrary large value for animation */
+}
+
+
+/* Performance optimizations */
+.mallem-mobile-menu__drawer,
+.mallem-mobile-menu__overlay {
+  /* WHY will-change: Hint browser for GPU layer */
+  will-change: transform, opacity;
+}
+
+/* WHY contain: Limit paint/layout to this subtree */
+.mallem-mobile-menu__drawer {
+  contain: layout style paint;
+}
+
+/* Visually hidden utility for accessibility */
+.visually-hidden {
+  position: absolute !important;
+  inline-size: 1px !important;
+  block-size: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/*
+  INTENTIONAL: No desktop hiding
+  WHY: Kalles pattern allows desktop triggers (language icon) to open drawer
+  WHY removed display:none: Drawer must be available on all screen sizes
+  CONTROL: Visibility managed by aria-hidden attribute (see JS), not CSS media queries
+*/
+
+/* Small screen optimizations */
+@media screen and (max-width: 374px) {
+  .mallem-mobile-menu__drawer {
+    inline-size: 90vw; /* More space on very small screens */
+  }
+
+  .mallem-mobile-menu__link {
+    font-size: 0.9375rem;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .mallem-mobile-menu,
+  .mallem-mobile-menu__drawer,
+  .mallem-mobile-menu__submenu,
+  .mallem-mobile-menu__toggle {
+    transition-duration: 0.01ms !important;
+  }
+}

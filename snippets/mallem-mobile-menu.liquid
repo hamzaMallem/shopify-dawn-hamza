@@ -1,0 +1,169 @@
+{%- comment -%}
+  Component: Mobile Menu Drawer
+  Purpose: Touch-first mobile navigation with nested accordion menus
+  Used in: layout/theme.liquid (mobile breakpoint only)
+
+  Features:
+  - Slide-in drawer animation (RTL/LTR aware)
+  - Accordion navigation (up to 3 levels deep)
+  - Integrated language switcher
+  - Optional search input
+  - Focus trap for accessibility
+  - Escape key to close
+  - Touch-optimized (44px minimum tap targets)
+
+  RTL: Uses CSS logical properties (inset-inline-start/end)
+  Performance: CSS animations, minimal DOM, event delegation, no reflows
+{%- endcomment -%}
+
+{%- liquid
+  assign menu = section.settings.menu
+  assign show_search = section.settings.mobile_menu_search | default: true
+-%}
+
+<div class="mallem-mobile-menu" id="mallem-mobile-menu" aria-hidden="true" role="dialog" aria-modal="true" aria-label="{{ 'accessibility.mobile_menu' | t }}">
+  {%- comment -%} Overlay - close drawer when clicked {%- endcomment -%}
+  <div class="mallem-mobile-menu__overlay" data-mallem-menu-close tabindex="-1"></div>
+
+  {%- comment -%} Drawer container - slides in from inline-start (left in LTR, right in RTL) {%- endcomment -%}
+  <div class="mallem-mobile-menu__drawer">
+    {%- comment -%} Header with close button {%- endcomment -%}
+    <div class="mallem-mobile-menu__header">
+      <span class="mallem-mobile-menu__title">{{ 'general.menu' | t }}</span>
+      <button
+        type="button"
+        class="mallem-mobile-menu__close"
+        data-mallem-menu-close
+        aria-label="{{ 'accessibility.close' | t }}"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    {%- comment -%} Optional search input - positioned at top for easy thumb access {%- endcomment -%}
+    {%- if show_search -%}
+      <div class="mallem-mobile-menu__search">
+        <form action="{{ routes.search_url }}" method="get" role="search">
+          <label for="mallem-mobile-search" class="visually-hidden">{{ 'general.search.search' | t }}</label>
+          <input
+            type="search"
+            id="mallem-mobile-search"
+            name="q"
+            placeholder="{{ 'general.search.placeholder' | t }}"
+            class="mallem-mobile-menu__search-input"
+          >
+          <button type="submit" class="mallem-mobile-menu__search-btn" aria-label="{{ 'general.search.submit' | t }}">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} Language switcher - mobile-only, positioned at top for visibility {%- endcomment -%}
+    {%- comment -%} WHY top placement: Users expect language selection before navigation {%- endcomment -%}
+    {%- comment -%} WHY mobile-only: Desktop header is too crowded, mobile menu has dedicated space {%- endcomment -%}
+    {%- if section.settings.enable_language_selector and localization.available_languages.size > 1 -%}
+      <div class="mallem-mobile-menu__language">
+        {%- render 'mallem-language-switcher', context: 'mobile-menu' -%}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} Navigation menu with accordion behavior {%- endcomment -%}
+    <nav class="mallem-mobile-menu__nav" aria-label="{{ 'accessibility.main_navigation' | t }}">
+      {%- if linklists[menu].links.size > 0 -%}
+        <ul class="mallem-mobile-menu__list" role="list">
+          {%- for link in linklists[menu].links -%}
+            {%- liquid
+              assign has_children = false
+              if link.links.size > 0
+                assign has_children = true
+              endif
+            -%}
+
+            <li class="mallem-mobile-menu__item{% if has_children %} mallem-mobile-menu__item--has-children{% endif %}">
+              {%- if has_children -%}
+                {%- comment -%} Parent link with toggle button {%- endcomment -%}
+                <div class="mallem-mobile-menu__link-wrapper">
+                  <a href="{{ link.url }}" class="mallem-mobile-menu__link">
+                    {{ link.title }}
+                  </a>
+                  <button
+                    type="button"
+                    class="mallem-mobile-menu__toggle"
+                    aria-expanded="false"
+                    aria-label="{{ 'accessibility.expand_menu' | t: title: link.title }}"
+                    data-mallem-menu-toggle
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                      <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {%- comment -%} Nested submenu (Level 2) {%- endcomment -%}
+                <ul class="mallem-mobile-menu__submenu" role="list" hidden>
+                  {%- for child_link in link.links -%}
+                    {%- liquid
+                      assign has_grandchildren = false
+                      if child_link.links.size > 0
+                        assign has_grandchildren = true
+                      endif
+                    -%}
+
+                    <li class="mallem-mobile-menu__item{% if has_grandchildren %} mallem-mobile-menu__item--has-children{% endif %}">
+                      {%- if has_grandchildren -%}
+                        {%- comment -%} Second level parent with toggle {%- endcomment -%}
+                        <div class="mallem-mobile-menu__link-wrapper">
+                          <a href="{{ child_link.url }}" class="mallem-mobile-menu__link">
+                            {{ child_link.title }}
+                          </a>
+                          <button
+                            type="button"
+                            class="mallem-mobile-menu__toggle"
+                            aria-expanded="false"
+                            aria-label="{{ 'accessibility.expand_menu' | t: title: child_link.title }}"
+                            data-mallem-menu-toggle
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                              <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          </button>
+                        </div>
+
+                        {%- comment -%} Nested submenu (Level 3) - deepest level {%- endcomment -%}
+                        <ul class="mallem-mobile-menu__submenu" role="list" hidden>
+                          {%- for grandchild_link in child_link.links -%}
+                            <li class="mallem-mobile-menu__item">
+                              <a href="{{ grandchild_link.url }}" class="mallem-mobile-menu__link">
+                                {{ grandchild_link.title }}
+                              </a>
+                            </li>
+                          {%- endfor -%}
+                        </ul>
+                      {%- else -%}
+                        {%- comment -%} Regular child link {%- endcomment -%}
+                        <a href="{{ child_link.url }}" class="mallem-mobile-menu__link">
+                          {{ child_link.title }}
+                        </a>
+                      {%- endif -%}
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              {%- else -%}
+                {%- comment -%} Regular top-level link {%- endcomment -%}
+                <a href="{{ link.url }}" class="mallem-mobile-menu__link">
+                  {{ link.title }}
+                </a>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </nav>
+  </div>
+</div>

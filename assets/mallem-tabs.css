@@ -1,0 +1,333 @@
+/* ================================================
+   Product Tabs System
+   Desktop: Horizontal tabs
+   Mobile: Accordion panels
+   RTL-ready using CSS logical properties only
+   ================================================ */
+
+.mallem-product-tabs {
+  margin-block: 0;
+}
+
+.mallem-tabs {
+  display: block;
+}
+
+/* ================================================
+   Mobile Accordion (Default)
+   ================================================ */
+
+/* Hide desktop tab list on mobile */
+.mallem-tabs__list-wrapper {
+  display: none;
+}
+
+/* Panel container */
+.mallem-tabs__panels {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Individual panel */
+.mallem-tabs__panel {
+  border-block-end: 1px solid rgba(var(--color-foreground), 0.1);
+}
+
+.mallem-tabs__panel:first-child {
+  border-block-start: 1px solid rgba(var(--color-foreground), 0.1);
+}
+
+/* Accordion trigger button */
+.mallem-tabs__accordion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  inline-size: 100%;
+  padding-block: 1.5rem;
+  padding-inline: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: start;
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgb(var(--color-foreground));
+  transition: color 0.2s ease;
+}
+
+.mallem-tabs__accordion-trigger:hover {
+  color: rgba(var(--color-foreground), 0.7);
+}
+
+.mallem-tabs__accordion-trigger:focus-visible {
+  outline: 0.2rem solid rgba(var(--color-foreground), 0.5);
+  outline-offset: 0.3rem;
+  border-radius: 0.3rem;
+}
+
+/* Icon in accordion trigger */
+.mallem-tabs__accordion-trigger .mallem-tabs__icon {
+  display: inline-flex;
+  margin-inline-end: 0.75rem;
+  font-size: 1.25rem;
+}
+
+/* Title in accordion trigger */
+.mallem-tabs__accordion-trigger .mallem-tabs__title {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* Caret icon */
+.mallem-tabs__caret {
+  inline-size: 1.2rem;
+  block-size: 0.8rem;
+  margin-inline-start: 1rem;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.mallem-tabs__accordion-trigger[aria-expanded="true"] .mallem-tabs__caret {
+  transform: rotate(180deg);
+}
+
+/* Panel content */
+.mallem-tabs__content {
+  max-block-size: 0;
+  overflow: hidden;
+  transition: max-block-size 0.3s ease, padding-block-end 0.3s ease;
+}
+
+.mallem-tabs__content--open {
+  max-block-size: 200rem; /* Large enough for any content */
+  padding-block-end: 1.5rem;
+}
+
+/* Content inner wrapper */
+.mallem-tabs__content-inner {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: rgba(var(--color-foreground), 0.85);
+}
+
+/* RTE content styling */
+.mallem-tabs__content-inner.rte {
+  padding-block-start: 0.5rem;
+}
+
+.mallem-tabs__content-inner.rte > *:first-child {
+  margin-block-start: 0;
+}
+
+.mallem-tabs__content-inner.rte > *:last-child {
+  margin-block-end: 0;
+}
+
+.mallem-tabs__content-inner.rte h4 {
+  margin-block: 1rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mallem-tabs__content-inner.rte p {
+  margin-block: 0.75rem;
+}
+
+.mallem-tabs__content-inner.rte ul,
+.mallem-tabs__content-inner.rte ol {
+  margin-block: 0.75rem;
+  padding-inline-start: 1.5rem;
+}
+
+.mallem-tabs__content-inner.rte li {
+  margin-block: 0.375rem;
+}
+
+/* COD default content */
+.mallem-tabs__cod-default h4 {
+  margin-block-end: 0.75rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.mallem-tabs__cod-default p {
+  margin-block-end: 1rem;
+}
+
+.mallem-tabs__cod-default ul {
+  margin-block-start: 0.75rem;
+  padding-inline-start: 1.5rem;
+}
+
+.mallem-tabs__cod-default li {
+  margin-block: 0.5rem;
+}
+
+/* ================================================
+   Desktop Tabs (750px+)
+   ================================================ */
+
+@media screen and (min-width: 750px) {
+  /* Show desktop tab list */
+  .mallem-tabs__list-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-block-end: 2rem;
+    border-block-end: 2px solid rgba(var(--color-foreground), 0.1);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .mallem-tabs__list-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mallem-tabs__list-wrapper {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  /* Desktop tab button */
+  .mallem-tabs__tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-block: 1rem;
+    padding-inline: 1.5rem;
+    background: transparent;
+    border: none;
+    border-block-end: 2px solid transparent;
+    margin-block-end: -2px;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: rgba(var(--color-foreground), 0.6);
+    white-space: nowrap;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .mallem-tabs__tab:hover {
+    color: rgb(var(--color-foreground));
+  }
+
+  .mallem-tabs__tab:focus-visible {
+    outline: 0.2rem solid rgba(var(--color-foreground), 0.5);
+    outline-offset: 0.3rem;
+    border-radius: 0.3rem;
+  }
+
+  /* Active tab */
+  .mallem-tabs__tab--active {
+    color: rgb(var(--color-foreground));
+    border-block-end-color: rgb(var(--color-foreground));
+  }
+
+  /* Icon in desktop tab */
+  .mallem-tabs__tab .mallem-tabs__icon {
+    display: inline-flex;
+    font-size: 1.125rem;
+  }
+
+  /* Hide accordion triggers on desktop */
+  .mallem-tabs__accordion-trigger {
+    display: none;
+  }
+
+  /* Panel styling on desktop */
+  .mallem-tabs__panel {
+    border: none;
+  }
+
+  .mallem-tabs__panel:first-child {
+    border: none;
+  }
+
+  /* Show active panel, hide others */
+  .mallem-tabs__panel {
+    display: none;
+  }
+
+  .mallem-tabs__panel--active {
+    display: block;
+  }
+
+  /* Content always visible on desktop */
+  .mallem-tabs__content {
+    max-block-size: none;
+    overflow: visible;
+    padding-block-end: 0;
+  }
+
+  /* Content inner on desktop */
+  .mallem-tabs__content-inner {
+    font-size: 1rem;
+  }
+}
+
+/* ================================================
+   Large Desktop (990px+)
+   ================================================ */
+
+@media screen and (min-width: 990px) {
+  .mallem-tabs__tab {
+    padding-inline: 2rem;
+    font-size: 1rem;
+  }
+
+  .mallem-tabs__content-inner {
+    font-size: 1.0625rem;
+  }
+}
+
+/* ================================================
+   Accessibility & Reduced Motion
+   ================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .mallem-tabs__content,
+  .mallem-tabs__caret,
+  .mallem-tabs__tab {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .mallem-tabs__panel {
+    border-block-end-width: 2px;
+  }
+
+  .mallem-tabs__tab--active {
+    border-block-end-width: 3px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .mallem-tabs__accordion-trigger {
+    display: none;
+  }
+
+  .mallem-tabs__content {
+    max-block-size: none;
+    padding-block-end: 1rem;
+  }
+
+  .mallem-tabs__panel {
+    border: none;
+    page-break-inside: avoid;
+  }
+}
+
+/* ================================================
+   Loading State (optional)
+   ================================================ */
+
+.mallem-tabs[data-loading] {
+  opacity: 0.6;
+  pointer-events: none;
+}

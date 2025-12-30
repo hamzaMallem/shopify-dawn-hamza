@@ -1,0 +1,418 @@
+/**
+ * ============================================================================
+ * MALLEM QUICK VIEW MODAL
+ * ============================================================================
+ *
+ * Styles for quick view modal overlay and dialog.
+ * Built for accessibility, performance, and RTL compatibility.
+ *
+ * FEATURES:
+ * - Full-screen overlay with backdrop blur
+ * - Centered modal on desktop, full-screen on mobile
+ * - Smooth animations (fade in/out)
+ * - RTL-ready (CSS logical properties)
+ * - Accessible (focus indicators)
+ * - Mobile-first responsive
+ *
+ * ARCHITECTURE:
+ * - BEM naming: .mallem-quick-view-modal__element--modifier
+ * - CSS custom properties for theming
+ * - No directional properties (left/right)
+ * - GPU-accelerated animations
+ *
+ * Author: mallem dev company
+ * Version: 1.0.0
+ */
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES
+   ============================================================================ */
+
+:root {
+  /* Modal overlay */
+  --mallem-qv-overlay-bg: rgba(0, 0, 0, 0.75);
+  --mallem-qv-overlay-backdrop: blur(4px);
+
+  /* Modal dialog */
+  --mallem-qv-dialog-bg: #ffffff;
+  --mallem-qv-dialog-max-width: 1000px;
+  --mallem-qv-dialog-border-radius: 8px;
+  --mallem-qv-dialog-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  /* Header */
+  --mallem-qv-header-bg: #f8f8f8;
+  --mallem-qv-header-padding: 1.5rem;
+  --mallem-qv-header-border: 1px solid #e5e5e5;
+
+  /* Close button */
+  --mallem-qv-close-size: 44px; /* Minimum tap target */
+  --mallem-qv-close-color: #333333;
+  --mallem-qv-close-hover-bg: rgba(0, 0, 0, 0.1);
+
+  /* Body */
+  --mallem-qv-body-padding: 2rem;
+  --mallem-qv-body-max-height: 70vh;
+
+  /* Animation */
+  --mallem-qv-transition-duration: 0.3s;
+  --mallem-qv-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-index */
+  --mallem-qv-z-index: 9999;
+}
+
+/* ============================================================================
+   MODAL CONTAINER
+   ============================================================================ */
+
+.mallem-quick-view-modal {
+  position: fixed;
+  inset: 0; /* top, right, bottom, left - RTL safe */
+  z-index: var(--mallem-qv-z-index);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Hidden by default, controlled by JS */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--mallem-qv-transition-duration) var(--mallem-qv-transition-easing),
+              visibility var(--mallem-qv-transition-duration) var(--mallem-qv-transition-easing);
+
+  /* Prevent interaction when hidden */
+  pointer-events: none;
+}
+
+/* Active state (controlled by JS) */
+.mallem-quick-view-modal--active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* ============================================================================
+   MODAL OVERLAY (Background)
+   ============================================================================ */
+
+.mallem-quick-view-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: var(--mallem-qv-overlay-bg);
+  backdrop-filter: var(--mallem-qv-overlay-backdrop);
+  cursor: pointer; /* Indicates clickable to close */
+
+  /* GPU acceleration for smooth backdrop blur */
+  will-change: opacity;
+  transform: translateZ(0);
+}
+
+/* ============================================================================
+   MODAL DIALOG
+   ============================================================================ */
+
+.mallem-quick-view-modal__dialog {
+  position: relative;
+  z-index: 1; /* Above overlay */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--mallem-qv-dialog-max-width);
+  max-height: 90vh;
+  background-color: var(--mallem-qv-dialog-bg);
+  border-radius: var(--mallem-qv-dialog-border-radius);
+  box-shadow: var(--mallem-qv-dialog-shadow);
+
+  /* Animation: Scale up on open */
+  transform: scale(0.95);
+  transition: transform var(--mallem-qv-transition-duration) var(--mallem-qv-transition-easing);
+
+  /* Margin for mobile spacing */
+  margin-inline: 1rem;
+  margin-block: 1rem;
+}
+
+/* Active state: Scale to normal */
+.mallem-quick-view-modal--active .mallem-quick-view-modal__dialog {
+  transform: scale(1);
+}
+
+/* Mobile: Full screen */
+@media screen and (max-width: 749px) {
+  .mallem-quick-view-modal__dialog {
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+}
+
+/* ============================================================================
+   MODAL HEADER
+   ============================================================================ */
+
+.mallem-quick-view-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--mallem-qv-header-padding);
+  background-color: var(--mallem-qv-header-bg);
+  border-start-start-radius: var(--mallem-qv-dialog-border-radius);
+  border-start-end-radius: var(--mallem-qv-dialog-border-radius);
+  border-block-end: var(--mallem-qv-header-border);
+
+  /* Prevent shrinking when content is large */
+  flex-shrink: 0;
+}
+
+/* Mobile: Smaller padding */
+@media screen and (max-width: 749px) {
+  .mallem-quick-view-modal__header {
+    padding: 1rem;
+    border-radius: 0;
+  }
+}
+
+/* ============================================================================
+   MODAL TITLE
+   ============================================================================ */
+
+.mallem-quick-view-modal__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1a1a1a;
+
+  /* Truncate long titles */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  /* Leave space for close button */
+  padding-inline-end: 1rem;
+}
+
+/* Mobile: Smaller title */
+@media screen and (max-width: 749px) {
+  .mallem-quick-view-modal__title {
+    font-size: 1.125rem;
+  }
+}
+
+/* ============================================================================
+   CLOSE BUTTON
+   ============================================================================ */
+
+.mallem-quick-view-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--mallem-qv-close-size);
+  height: var(--mallem-qv-close-size);
+  min-width: var(--mallem-qv-close-size); /* Ensure minimum tap target */
+  min-height: var(--mallem-qv-close-size);
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--mallem-qv-close-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  /* Ensure button doesn't shrink */
+  flex-shrink: 0;
+}
+
+.mallem-quick-view-modal__close:hover,
+.mallem-quick-view-modal__close:focus {
+  background-color: var(--mallem-qv-close-hover-bg);
+}
+
+.mallem-quick-view-modal__close:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.mallem-quick-view-modal__close:active {
+  transform: scale(0.95);
+}
+
+/* Close icon */
+.mallem-quick-view-modal__close-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+/* ============================================================================
+   MODAL BODY
+   ============================================================================ */
+
+.mallem-quick-view-modal__body {
+  padding: var(--mallem-qv-body-padding);
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Allow content to grow, but scrollable when exceeds max-height */
+  flex: 1 1 auto;
+  max-height: var(--mallem-qv-body-max-height);
+
+  /* Smooth scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile: Smaller padding, full height */
+@media screen and (max-width: 749px) {
+  .mallem-quick-view-modal__body {
+    padding: 1.5rem;
+    max-height: none; /* Full height on mobile */
+  }
+}
+
+/* Custom scrollbar (webkit browsers) */
+.mallem-quick-view-modal__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mallem-quick-view-modal__body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.mallem-quick-view-modal__body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.mallem-quick-view-modal__body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* ============================================================================
+   LOADING STATE
+   ============================================================================ */
+
+.mallem-quick-view-modal__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: #666666;
+}
+
+.mallem-quick-view-modal__spinner {
+  width: 40px;
+  height: 40px;
+  margin-block-end: 1rem;
+  border: 3px solid #f3f3f3;
+  border-block-start-color: #333333;
+  border-radius: 50%;
+  animation: mallem-qv-spin 1s linear infinite;
+}
+
+/* Spinner animation */
+@keyframes mallem-qv-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   ERROR STATE
+   ============================================================================ */
+
+.mallem-quick-view-modal__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: #d32f2f;
+}
+
+.mallem-quick-view-modal__error p {
+  margin-block-end: 1.5rem;
+  font-size: 1rem;
+}
+
+.mallem-quick-view-modal__error button {
+  margin-block-start: 1rem;
+}
+
+/* ============================================================================
+   PRODUCT CONTENT STYLES
+   ============================================================================ */
+
+/*
+  Override Dawn product styles for better modal layout
+  These styles ensure product content fits nicely in modal
+*/
+
+.mallem-quick-view-modal__body .product {
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.mallem-quick-view-modal__body .product__media-wrapper {
+  margin-block-end: 1.5rem;
+}
+
+.mallem-quick-view-modal__body .product__info-wrapper {
+  padding: 0;
+}
+
+/* ============================================================================
+   FOCUS MANAGEMENT
+   ============================================================================ */
+
+/*
+  Remove focus outline from modal container
+  Focus should be on interactive elements within modal
+*/
+.mallem-quick-view-modal:focus {
+  outline: none;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .mallem-quick-view-modal,
+  .mallem-quick-view-modal__dialog,
+  .mallem-quick-view-modal__close {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .mallem-quick-view-modal__spinner {
+    animation: none !important;
+    border-block-start-color: #666666;
+  }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================ */
+
+@media (prefers-contrast: high) {
+  .mallem-quick-view-modal__dialog {
+    border: 2px solid currentColor;
+  }
+
+  .mallem-quick-view-modal__close {
+    border: 2px solid currentColor;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .mallem-quick-view-modal {
+    display: none !important;
+  }
+}

@@ -1,0 +1,156 @@
+{%- comment -%}
+  ================================================================================
+  MALLEM CART DRAWER - LINE ITEM
+  ================================================================================
+
+  Component: Cart Line Item
+  Purpose: Display individual cart item with image, details, quantity, price
+  Used in: snippets/mallem-cart-drawer.liquid
+
+  Parameters:
+  - item: Shopify cart item object
+
+  Features:
+  - Product image with link
+  - Product title and variant
+  - Price (original + sale if applicable)
+  - Quantity controls (-, input, +)
+  - Remove button
+  - Line total price
+
+  RTL: Uses CSS logical properties for layout
+  Performance: Explicit image dimensions to prevent CLS
+
+  ================================================================================
+{%- endcomment -%}
+
+<div class="mallem-cart-drawer-item" data-cart-item data-line-index="{{ forloop.index }}">
+  {%- comment -%}
+    Product Image
+    WHY link: Allow navigation to product page
+    WHY explicit dimensions: Prevent Cumulative Layout Shift (CLS)
+  {%- endcomment -%}
+  <div class="mallem-cart-drawer-item__image">
+    <a href="{{ item.url }}">
+      {%- if item.image -%}
+        <img
+          src="{{ item.image | image_url: width: 120 }}"
+          alt="{{ item.image.alt | escape }}"
+          width="120"
+          height="120"
+          loading="lazy"
+        >
+      {%- else -%}
+        {%- comment -%}Placeholder for products without image{%- endcomment -%}
+        <div class="mallem-cart-drawer-item__image-placeholder">
+          <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M30 10L50 20V40L30 50L10 40V20L30 10Z" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+      {%- endif -%}
+    </a>
+  </div>
+
+  {%- comment -%}
+    Product Details: Title, Variant, Price
+  {%- endcomment -%}
+  <div class="mallem-cart-drawer-item__details">
+    <a href="{{ item.url }}" class="mallem-cart-drawer-item__title">
+      {{ item.product.title | escape }}
+    </a>
+
+    {%- comment -%}
+      Variant Details
+      WHY: Show selected options (Size: Large, Color: Blue)
+    {%- endcomment -%}
+    {%- unless item.product.has_only_default_variant -%}
+      <div class="mallem-cart-drawer-item__variant">
+        {%- for option in item.options_with_values -%}
+          <span class="mallem-cart-drawer-item__option">
+            {{ option.name }}: {{ option.value }}
+          </span>
+        {%- endfor -%}
+      </div>
+    {%- endunless -%}
+
+    {%- comment -%}
+      Price: Original + Sale (if applicable)
+      WHY compare_at_price: Show discount to increase perceived value
+    {%- endcomment -%}
+    <div class="mallem-cart-drawer-item__price">
+      {%- if item.original_price != item.final_price -%}
+        <span class="mallem-cart-drawer-item__price-original">
+          {{ item.original_price | money }}
+        </span>
+        <span class="mallem-cart-drawer-item__price-final">
+          {{ item.final_price | money }}
+        </span>
+      {%- else -%}
+        <span class="mallem-cart-drawer-item__price-final">
+          {{ item.final_price | money }}
+        </span>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      Quantity Controls
+      WHY debounce: JavaScript will debounce AJAX updates to avoid server spam
+    {%- endcomment -%}
+    <div class="mallem-cart-drawer-item__quantity">
+      <button
+        type="button"
+        class="mallem-cart-drawer-item__qty-btn"
+        data-qty-decrease
+        aria-label="{{ 'products.product.quantity.decrease' | t: product: item.product.title | escape }}"
+      >
+        <svg width="12" height="2" viewBox="0 0 12 2" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 1H12" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+
+      <input
+        type="number"
+        class="mallem-cart-drawer-item__qty-input"
+        name="updates[]"
+        value="{{ item.quantity }}"
+        min="0"
+        data-qty-input
+        data-line-key="{{ item.key }}"
+        aria-label="{{ 'products.product.quantity.input_label' | t: product: item.product.title | escape }}"
+      >
+
+      <button
+        type="button"
+        class="mallem-cart-drawer-item__qty-btn"
+        data-qty-increase
+        aria-label="{{ 'products.product.quantity.increase' | t: product: item.product.title | escape }}"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 0V12M0 6H12" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  {%- comment -%}
+    Right Column: Line Total + Remove
+    WHY separate column: Visual hierarchy (price is important)
+  {%- endcomment -%}
+  <div class="mallem-cart-drawer-item__actions">
+    <div class="mallem-cart-drawer-item__total" data-line-total>
+      {{ item.final_line_price | money }}
+    </div>
+
+    <button
+      type="button"
+      class="mallem-cart-drawer-item__remove"
+      data-remove-item
+      data-line-key="{{ item.key }}"
+      aria-label="{{ 'sections.cart.remove_title' | t: title: item.title | escape }}"
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+</div>

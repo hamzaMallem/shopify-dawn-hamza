@@ -258,6 +258,38 @@
   >
     <div class="footer__content-bottom-wrapper page-width">
       <div class="footer__column footer__localization isolate">
+{%- comment -%}
+          ================================================================================
+          MALLEM THEME: LANGUAGE SELECTOR INTENTIONALLY REMOVED FROM FOOTER
+          ================================================================================
+
+          WHY REMOVED:
+          - Follows Kalles/premium theme UX pattern
+          - Single entry point for language switching = header globe icon (🌐)
+          - Globe icon opens mobile menu drawer with actual language selector
+          - Prevents confusion from duplicate language controls
+
+          WHERE LANGUAGE SWITCHING HAPPENS:
+          - User clicks globe icon in header (sections/header.liquid)
+          - Mobile menu drawer opens (snippets/mallem-mobile-menu.liquid)
+          - Language selector inside drawer (snippets/mallem-language-switcher.liquid)
+          - Shopify native localization form handles the switch
+
+          COUNTRY SELECTOR:
+          - Also removed from footer for consistency
+          - Can be re-enabled if needed for Markets (uncomment below)
+
+          DO NOT RE-ADD LANGUAGE SELECTOR HERE WITHOUT:
+          1. Understanding it creates duplicate UX
+          2. Consulting mallem theme architecture documentation
+          3. Verifying it doesn't conflict with header globe icon behavior
+
+          ================================================================================
+
+          ORIGINAL FOOTER LANGUAGE/COUNTRY SELECTORS (DISABLED):
+        {%- endcomment -%}
+
+        {%- comment -%}
         {%- if section.settings.enable_country_selector and localization.available_countries.size > 1 -%}
           <localization-form>
             {%- form 'localization', id: 'FooterCountryForm', class: 'localization-form' -%}
@@ -281,6 +313,7 @@
             {%- endform -%}
           </localization-form>
         {%- endif -%}
+        {%- endcomment -%}
       </div>
       <div class="footer__column footer__column--info">
         {%- if section.settings.payment_enable -%}

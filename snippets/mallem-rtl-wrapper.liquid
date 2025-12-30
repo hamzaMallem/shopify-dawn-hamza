@@ -1,98 +1,85 @@
-{% comment %}
-  ================================================================================
-  Mallem RTL Wrapper
-  ================================================================================
-
-  Provides comprehensive RTL (Right-to-Left) support for the Mallem Shopify theme.
-
-  Features:
-  - Automatic RTL detection based on locale (Arabic: ar, Hebrew: he, Farsi: fa, Urdu: ur)
-  - Merchant override capability via theme settings
-  - HTML dir attribute management
-  - CSS class hooks for RTL-specific styling
-  - Zero JavaScript dependency
-  - Performance-neutral implementation
-
-  Usage:
-  Include this snippet in the <html> tag attributes in theme.liquid:
-  {% render 'mallem-rtl-wrapper' %}
-
-  This will output: dir="rtl" class="mallem-rtl" (for RTL languages)
-  Or: dir="ltr" class="mallem-ltr" (for LTR languages)
-
-  ================================================================================
-{% endcomment %}
-
 {%- comment -%}
   ================================================================================
-  Step 1: Define RTL language codes
+  MALLEM RTL WRAPPER
   ================================================================================
-  Detect if the current locale is an RTL language.
-  Supported RTL languages: Arabic (ar), Hebrew (he), Farsi/Persian (fa), Urdu (ur)
+
+  CRITICAL: Shopify-native RTL detection for Arabic/MENA markets
+
+  WHY this snippet exists:
+  - Shopify controls lang="{{ request.locale.iso_code }}" (layout/theme.liquid)
+  - This snippet adds dir="rtl" for RTL languages
+  - CSS logical properties in theme respond to dir attribute
+  - NO JavaScript involved - pure Shopify Liquid
+
+  HOW it works:
+  1. Shopify user selects language (e.g., العربية)
+  2. Shopify POSTs to /localization
+  3. Shopify reloads page with request.locale.iso_code = "ar"
+  4. This snippet outputs dir="rtl" class="mallem-rtl"
+  5. CSS activates RTL styles automatically
+
+  RTL LANGUAGES SUPPORTED:
+  - Arabic (ar) - Primary target for mallem theme
+  - Hebrew (he)
+  - Farsi/Persian (fa)
+  - Urdu (ur)
+
+  OUTPUT EXAMPLES:
+  - Arabic:  dir="rtl" class="mallem-rtl"
+  - English: dir="ltr" class="mallem-ltr"
+
+  USAGE:
+  <html lang="{{ request.locale.iso_code }}" {% render 'mallem-rtl-wrapper' %}>
+
+  ================================================================================
 {%- endcomment -%}
 
 {%- liquid
-  # Extract the primary language code from the locale (e.g., 'ar' from 'ar-SA')
+  comment
+    Extract primary language code from locale
+    Example: "ar-SA" becomes "ar", "en-US" becomes "en"
+    WHY: Regional variants share same directionality
+  endcomment
   assign current_locale = request.locale.iso_code | split: '-' | first | downcase
 
-  # Define RTL language codes
+  comment
+    Define RTL language codes (MENA + Middle East languages)
+    WHY these four: Cover 99% of RTL e-commerce markets
+    - ar (Arabic): Morocco, Egypt, Saudi Arabia, UAE, etc.
+    - he (Hebrew): Israel
+    - fa (Persian): Iran
+    - ur (Urdu): Pakistan
+  endcomment
   assign rtl_languages = 'ar,he,fa,ur' | split: ','
 
-  # Check if current language is RTL
-  assign is_rtl_locale = false
+  comment
+    Check if current locale is RTL
+    WHY simple loop: Liquid has no "contains" for arrays
+  endcomment
+  assign is_rtl = false
   for rtl_lang in rtl_languages
     if current_locale == rtl_lang
-      assign is_rtl_locale = true
+      assign is_rtl = true
       break
     endif
   endfor
--%}
 
-{%- comment -%}
-  ================================================================================
-  Step 2: Apply merchant override from theme settings
-  ================================================================================
-  Allow merchants to manually override the automatic RTL detection.
-  Settings options:
-  - 'auto': Use automatic locale detection (default)
-  - 'rtl': Force RTL direction
-  - 'ltr': Force LTR direction
-{%- endcomment -%}
-
-{%- liquid
-  # Get the merchant's RTL override setting (defaults to 'auto')
-  assign rtl_override = settings.mallem_rtl_direction | default: 'auto'
-
-  # Determine final direction based on override setting
-  assign final_direction = 'ltr'
-  assign rtl_class = 'mallem-ltr'
-
-  if rtl_override == 'rtl'
-    # Merchant forced RTL
-    assign final_direction = 'rtl'
-    assign rtl_class = 'mallem-rtl'
-  elsif rtl_override == 'ltr'
-    # Merchant forced LTR
-    assign final_direction = 'ltr'
-    assign rtl_class = 'mallem-ltr'
-  elsif rtl_override == 'auto'
-    # Use automatic locale detection
-    if is_rtl_locale
-      assign final_direction = 'rtl'
-      assign rtl_class = 'mallem-rtl'
-    else
-      assign final_direction = 'ltr'
-      assign rtl_class = 'mallem-ltr'
-    endif
+  comment
+    Set direction and CSS class
+    WHY separate class: Allows CSS hooks for RTL-specific styling
+    Example: .mallem-rtl .product-card { ... }
+  endcomment
+  if is_rtl
+    assign direction = 'rtl'
+    assign direction_class = 'mallem-rtl'
+  else
+    assign direction = 'ltr'
+    assign direction_class = 'mallem-ltr'
   endif
 -%}
 
 {%- comment -%}
-  ================================================================================
-  Step 3: Output HTML attributes
-  ================================================================================
-  Output the dir attribute and CSS class for the <html> tag.
-  This provides both semantic HTML direction and styling hooks.
+  OUTPUT: HTML attributes for <html> tag
+  WHY no line breaks: Clean attribute output in source
 {%- endcomment -%}
-
-dir="{{ final_direction }}" class="{{ rtl_class }}"
+dir="{{ direction }}" class="{{ direction_class }}"

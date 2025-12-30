@@ -1,0 +1,329 @@
+{%- comment -%}
+  Component: Product Tabs System
+  Purpose: Tabbed content on desktop, accordion on mobile for product information
+  Used in: Product pages (via theme customizer)
+
+  Features:
+  - Desktop: Horizontal tabs with content switching
+  - Mobile: Accordion (collapsible panels)
+  - Merchant-controlled blocks (add, remove, reorder)
+  - Default tabs: Description, Shipping, Size Guide, COD
+  - Custom tabs via blocks
+  - Accessible (ARIA, keyboard navigation)
+
+  RTL: CSS logical properties throughout
+  Performance: Minimal JS, CSS-driven animations
+{%- endcomment -%}
+
+{%- if section.blocks.size > 0 -%}
+  <div class="mallem-product-tabs page-width section-{{ section.id }}-padding">
+    <mallem-tabs
+      class="mallem-tabs"
+      data-section-id="{{ section.id }}"
+      data-mobile-behavior="{{ section.settings.mobile_behavior }}"
+    >
+      {%- comment -%} Desktop Tab List {%- endcomment -%}
+      <div class="mallem-tabs__list-wrapper" role="tablist" aria-label="{{ 'mallem.product_tabs.label' | t }}">
+        {%- for block in section.blocks -%}
+          <button
+            type="button"
+            role="tab"
+            class="mallem-tabs__tab{% if forloop.first %} mallem-tabs__tab--active{% endif %}"
+            id="tab-{{ section.id }}-{{ forloop.index }}"
+            aria-controls="panel-{{ section.id }}-{{ forloop.index }}"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            data-tab-index="{{ forloop.index }}"
+            {{ block.shopify_attributes }}
+          >
+            {%- if block.settings.icon != blank -%}
+              <span class="mallem-tabs__icon">{{ block.settings.icon }}</span>
+            {%- endif -%}
+            <span class="mallem-tabs__title">{{ block.settings.title }}</span>
+          </button>
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} Tab Panels {%- endcomment -%}
+      <div class="mallem-tabs__panels">
+        {%- for block in section.blocks -%}
+          <div
+            role="tabpanel"
+            class="mallem-tabs__panel{% if forloop.first %} mallem-tabs__panel--active{% endif %}"
+            id="panel-{{ section.id }}-{{ forloop.index }}"
+            aria-labelledby="tab-{{ section.id }}-{{ forloop.index }}"
+            data-panel-index="{{ forloop.index }}"
+            {% unless forloop.first %}hidden{% endunless %}
+            {{ block.shopify_attributes }}
+          >
+            {%- comment -%} Mobile Accordion Header {%- endcomment -%}
+            <button
+              type="button"
+              class="mallem-tabs__accordion-trigger"
+              aria-expanded="{% if forloop.first and section.settings.mobile_behavior == 'accordion-first-open' %}true{% else %}false{% endif %}"
+              aria-controls="content-{{ section.id }}-{{ forloop.index }}"
+            >
+              {%- if block.settings.icon != blank -%}
+                <span class="mallem-tabs__icon">{{ block.settings.icon }}</span>
+              {%- endif -%}
+              <span class="mallem-tabs__title">{{ block.settings.title }}</span>
+              <svg class="mallem-tabs__caret" width="12" height="8" viewBox="0 0 12 8" fill="none" aria-hidden="true">
+                <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+
+            {%- comment -%} Panel Content {%- endcomment -%}
+            <div
+              class="mallem-tabs__content{% if forloop.first and section.settings.mobile_behavior == 'accordion-first-open' %} mallem-tabs__content--open{% endif %}"
+              id="content-{{ section.id }}-{{ forloop.index }}"
+            >
+              <div class="mallem-tabs__content-inner rte">
+                {%- case block.type -%}
+                  {%- when 'description' -%}
+                    {%- if product.description != blank -%}
+                      {{ product.description }}
+                    {%- else -%}
+                      <p>{{ 'products.product.description' | t }}</p>
+                    {%- endif -%}
+
+                  {%- when 'custom' -%}
+                    {%- if block.settings.content != blank -%}
+                      {{ block.settings.content }}
+                    {%- else -%}
+                      <p>{{ 'mallem.product_tabs.empty_content' | t }}</p>
+                    {%- endif -%}
+
+                  {%- when 'shipping' -%}
+                    {%- if block.settings.content != blank -%}
+                      {{ block.settings.content }}
+                    {%- else -%}
+                      <p>{{ 'mallem.product_tabs.shipping_default' | t }}</p>
+                    {%- endif -%}
+
+                  {%- when 'size_guide' -%}
+                    {%- if block.settings.content != blank -%}
+                      {{ block.settings.content }}
+                    {%- else -%}
+                      <p>{{ 'mallem.product_tabs.size_guide_default' | t }}</p>
+                    {%- endif -%}
+
+                  {%- when 'cod_info' -%}
+                    {%- if block.settings.content != blank -%}
+                      {{ block.settings.content }}
+                    {%- else -%}
+                      <div class="mallem-tabs__cod-default">
+                        <h4>{{ 'mallem.product_tabs.cod_title' | t }}</h4>
+                        <p>{{ 'mallem.product_tabs.cod_description' | t }}</p>
+                        <ul>
+                          <li>{{ 'mallem.product_tabs.cod_feature_1' | t }}</li>
+                          <li>{{ 'mallem.product_tabs.cod_feature_2' | t }}</li>
+                          <li>{{ 'mallem.product_tabs.cod_feature_3' | t }}</li>
+                        </ul>
+                      </div>
+                    {%- endif -%}
+                {%- endcase -%}
+              </div>
+            </div>
+          </div>
+        {%- endfor -%}
+      </div>
+    </mallem-tabs>
+  </div>
+
+  {{ 'mallem-tabs.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'mallem-tabs.js' | asset_url }}" defer></script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.mallem_product_tabs.name",
+  "tag": "section",
+  "class": "section-mallem-product-tabs",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "select",
+      "id": "mobile_behavior",
+      "label": "t:sections.mallem_product_tabs.settings.mobile_behavior.label",
+      "options": [
+        {
+          "value": "accordion",
+          "label": "t:sections.mallem_product_tabs.settings.mobile_behavior.options.accordion"
+        },
+        {
+          "value": "accordion-first-open",
+          "label": "t:sections.mallem_product_tabs.settings.mobile_behavior.options.accordion_first_open"
+        }
+      ],
+      "default": "accordion-first-open",
+      "info": "t:sections.mallem_product_tabs.settings.mobile_behavior.info"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.section_padding_heading"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 36
+    }
+  ],
+  "blocks": [
+    {
+      "type": "description",
+      "name": "t:sections.mallem_product_tabs.blocks.description.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.title.label",
+          "default": "Description"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.icon.label",
+          "info": "t:sections.mallem_product_tabs.blocks.settings.icon.info",
+          "placeholder": "📄"
+        }
+      ]
+    },
+    {
+      "type": "shipping",
+      "name": "t:sections.mallem_product_tabs.blocks.shipping.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.title.label",
+          "default": "Shipping"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.icon.label",
+          "info": "t:sections.mallem_product_tabs.blocks.settings.icon.info",
+          "placeholder": "🚚"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.content.label",
+          "default": "<p>Free shipping on orders over $50. Standard delivery in 3-5 business days.</p>"
+        }
+      ]
+    },
+    {
+      "type": "size_guide",
+      "name": "t:sections.mallem_product_tabs.blocks.size_guide.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.title.label",
+          "default": "Size Guide"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.icon.label",
+          "info": "t:sections.mallem_product_tabs.blocks.settings.icon.info",
+          "placeholder": "📏"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.content.label",
+          "default": "<p>Refer to our size chart to find your perfect fit.</p>"
+        }
+      ]
+    },
+    {
+      "type": "cod_info",
+      "name": "t:sections.mallem_product_tabs.blocks.cod_info.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.title.label",
+          "default": "Cash on Delivery"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.icon.label",
+          "info": "t:sections.mallem_product_tabs.blocks.settings.icon.info",
+          "placeholder": "💵"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.content.label",
+          "info": "t:sections.mallem_product_tabs.blocks.settings.content.info"
+        }
+      ]
+    },
+    {
+      "type": "custom",
+      "name": "t:sections.mallem_product_tabs.blocks.custom.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.title.label",
+          "default": "Custom Tab"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.icon.label",
+          "info": "t:sections.mallem_product_tabs.blocks.settings.icon.info",
+          "placeholder": "✨"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "t:sections.mallem_product_tabs.blocks.settings.content.label",
+          "default": "<p>Add your custom content here.</p>"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.mallem_product_tabs.presets.name",
+      "blocks": [
+        {
+          "type": "description"
+        },
+        {
+          "type": "shipping"
+        },
+        {
+          "type": "cod_info"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

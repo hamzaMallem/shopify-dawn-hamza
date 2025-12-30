@@ -1,26 +1,124 @@
 {%- comment -%}
-  Map badge type to translation key
-  This allows centralized badge rendering logic
+  ============================================================================
+  MALLEM BADGE
+  ============================================================================
+
+  Premium badge component for product states and promotions.
+  Supports predefined badge types and custom badges.
+
+  PARAMETERS:
+  - type {String} Required. Badge type: 'sale', 'soldout', 'cod', 'new', 'hot', 'preorder', 'limited'
+  - custom_text {String} Optional. Custom badge text (overrides type)
+  - show_icon {Boolean} Show icon alongside text. Default: false
+  - badge_class {String} Additional CSS classes. Default: ''
+
+  USAGE:
+  {# Standard badge #}
+  {% render 'mallem-badge', type: 'sale' %}
+
+  {# Badge with icon #}
+  {% render 'mallem-badge',
+     type: 'cod',
+     show_icon: true
+  %}
+
+  {# Custom badge #}
+  {% render 'mallem-badge',
+     type: 'sale',
+     custom_text: 'Flash Sale'
+  %}
+
+  BADGE TYPES:
+  - sale: On sale / discount
+  - soldout: Out of stock
+  - cod: Cash on delivery available
+  - new: New arrival
+  - hot: Hot / trending item
+  - preorder: Pre-order available
+  - limited: Limited quantity
+
+  ARCHITECTURE:
+  - Flexible badge system
+  - No hardcoded text (translation keys)
+  - RTL-ready styling
+  - Semantic HTML
+
 {%- endcomment -%}
 
 {%- liquid
+  # Set default parameter values
+  assign show_icon = show_icon | default: false
+  assign badge_class = badge_class | default: ''
+
+  # Map badge type to translation key and style modifier
   case type
     when 'sale'
       assign translation_key = 'products.badge.sale'
+      assign modifier = 'sale'
     when 'soldout'
       assign translation_key = 'products.badge.sold_out'
+      assign modifier = 'soldout'
     when 'cod'
       assign translation_key = 'products.badge.cod'
+      assign modifier = 'cod'
+    when 'new'
+      assign translation_key = 'products.badge.new'
+      assign modifier = 'new'
+    when 'hot'
+      assign translation_key = 'products.badge.hot'
+      assign modifier = 'hot'
+    when 'preorder'
+      assign translation_key = 'products.badge.preorder'
+      assign modifier = 'preorder'
+    when 'limited'
+      assign translation_key = 'products.badge.limited'
+      assign modifier = 'limited'
   endcase
+
+  # Get badge text (custom or translated)
+  if custom_text
+    assign badge_text = custom_text
+  elsif translation_key
+    assign badge_text = translation_key | t
+  endif
 -%}
 
-{%- comment -%}
-  Only render if translation key exists
-  Prevents rendering empty badges for invalid types
-{%- endcomment -%}
+{%- comment -%} Only render if we have badge text {%- endcomment -%}
+{%- if badge_text -%}
+  <span class="mallem-badge mallem-badge--{{ modifier }} {{ badge_class }}"
+        data-badge-type="{{ type }}">
 
-{%- if translation_key -%}
-  <span class="mallem-badge mallem-badge--{{ type }}">
-    {{ translation_key | t }}
+    {%- if show_icon -%}
+      {%- comment -%} Badge Icons (optional) {%- endcomment -%}
+      <span class="mallem-badge__icon" aria-hidden="true">
+        {%- case type -%}
+          {%- when 'sale' -%}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M10.5 1.5l-9 9m0-6.75h2.25m4.5 4.5h2.25m-9-6.75v2.25m4.5 4.5v2.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+
+          {%- when 'cod' -%}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 11A5 5 0 1 0 6 1a5 5 0 0 0 0 10z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M6 8V4m0 0a1.5 1.5 0 1 1 0 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+
+          {%- when 'hot' -%}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6.5 1C4.5 2.5 4 4 4 5.5c0 1.5 1 2.5 2 2.5s2-1 2-2.5c0 1.5.5 2.5 1.5 3-.5.5-1.5 1-3 1-2.5 0-4-2-4-4 0-2.5 2-4.5 4-5.5z" fill="currentColor"/>
+            </svg>
+
+          {%- when 'new' -%}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 1l1.5 3 3.5.5-2.5 2.5.5 3.5L6 9l-3 1.5.5-3.5L1 4.5l3.5-.5L6 1z" fill="currentColor"/>
+            </svg>
+
+        {%- endcase -%}
+      </span>
+    {%- endif -%}
+
+    {%- comment -%} Badge Text {%- endcomment -%}
+    <span class="mallem-badge__text">{{ badge_text }}</span>
+
   </span>
 {%- endif -%}

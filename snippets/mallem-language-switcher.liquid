@@ -1,0 +1,216 @@
+{%- comment -%}
+  ============================================================================
+  MALLEM LANGUAGE SWITCHER
+  ============================================================================
+
+  Native Shopify language switcher for header/footer.
+  Uses Shopify's built-in localization system.
+
+  USAGE:
+  {% render 'mallem-language-switcher' %}
+
+  REQUIREMENTS:
+  - Merchant must have multiple languages published
+  - Languages configured in Shopify admin (Settings > Languages)
+  - Theme must support RTL for Arabic/Hebrew languages
+
+  ARCHITECTURE:
+  - Uses Shopify's localization form pattern
+  - Auto-submits on change (no JavaScript required)
+  - Gracefully handles 2+ languages
+  - Shows language endonyms (native names)
+  - Accessible (proper labels, keyboard navigation)
+
+  RTL COMPATIBILITY:
+  - Direction handled by html[dir] attribute
+  - No directional logic in snippet
+  - Dropdown inherits text direction
+
+  PERFORMANCE:
+  - No JavaScript required
+  - Native HTML form submission
+  - Page reload on language change (Shopify default behavior)
+
+{%- endcomment -%}
+
+{%- comment -%}
+  Only render if multiple languages available
+  Why: Single language stores don't need switcher
+{%- endcomment -%}
+{%- if localization.available_languages.size > 1 -%}
+
+  {%- comment -%}
+    Localization Form
+    Posts to Shopify's locale change route
+    Why: Standard Shopify pattern for language switching
+  {%- endcomment -%}
+  <form
+    method="post"
+    action="{{ routes.localizations_url }}"
+    id="mallem-language-form"
+    accept-charset="UTF-8"
+    class="mallem-language-switcher"
+    enctype="multipart/form-data">
+
+    {%- comment -%}
+      Hidden form inputs required by Shopify
+      Why: Authenticity and return URL handling
+    {%- endcomment -%}
+    <input type="hidden" name="form_type" value="localization">
+    <input type="hidden" name="utf8" value="✓">
+    <input type="hidden" name="_method" value="put">
+    <input type="hidden" name="return_to" value="{{ request.path }}">
+
+    {%- comment -%}
+      Language Select Dropdown
+      Auto-submits on change via onchange attribute
+      Why: No JavaScript dependency, progressive enhancement
+    {%- endcomment -%}
+    <div class="mallem-language-switcher__wrapper">
+      <label
+        for="mallem-language-select"
+        class="mallem-visually-hidden">
+        {{ 'localization.language_label' | t }}
+      </label>
+
+      <select
+        id="mallem-language-select"
+        name="locale_code"
+        class="mallem-language-switcher__select"
+        onchange="this.form.submit()"
+        aria-label="{{ 'localization.language_label' | t }}">
+
+        {%- comment -%}
+          Loop through available languages
+          Why: Display all merchant-enabled languages
+        {%- endcomment -%}
+        {%- for language in localization.available_languages -%}
+          <option
+            value="{{ language.iso_code }}"
+            lang="{{ language.iso_code }}"
+            {% if language.iso_code == localization.language.iso_code %}selected="selected"{% endif %}>
+            {%- comment -%}
+              Display native language name (endonym)
+              Why: "العربية" instead of "Arabic", "English" instead of "Anglais"
+              Ensures users recognize their language regardless of current locale
+            {%- endcomment -%}
+            {{ language.endonym_name }}
+            {%- comment -%}
+              Optional: Show country code for regional variants
+              Why: Distinguish between en-US, en-GB, en-CA, etc.
+              Uncomment if store has regional language variants
+            {%- endcomment -%}
+            {%- comment -%} ({{ language.iso_code | upcase }}) {%- endcomment -%}
+          </option>
+        {%- endfor -%}
+      </select>
+
+      {%- comment -%}
+        SVG Icon (optional)
+        Why: Visual indicator for language selector
+      {%- endcomment -%}
+      <svg
+        class="mallem-language-switcher__icon"
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        aria-hidden="true">
+        <path
+          d="M8 1.5C4.41 1.5 1.5 4.41 1.5 8s2.91 6.5 6.5 6.5 6.5-2.91 6.5-6.5-2.91-6.5-6.5-6.5zm4.5 6.5c0 .58-.11 1.13-.31 1.64l-1.42-1.42c.05-.23.08-.47.08-.72 0-.58-.11-1.13-.31-1.64l1.42-1.42c.35.71.54 1.5.54 2.35zm-6.5-4.5c.58 0 1.13.11 1.64.31L6.22 5.23c-.23-.05-.47-.08-.72-.08-.58 0-1.13.11-1.64.31l1.42 1.42c.23-.05.47-.08.72-.08zm0 9c-.58 0-1.13-.11-1.64-.31l1.42-1.42c.23.05.47.08.72.08.58 0 1.13-.11 1.64-.31l-1.42-1.42c-.23.05-.47.08-.72.08zm4.5-4.5c0 .25-.03.49-.08.72l1.42 1.42c.2-.51.31-1.06.31-1.64 0-.25-.03-.49-.08-.72l-1.42-1.42c-.2.51-.31 1.06-.31 1.64z"
+          fill="currentColor"/>
+      </svg>
+    </div>
+
+    {%- comment -%}
+      Fallback Submit Button
+      Only shown if JavaScript disabled
+      Why: Ensures functionality without onchange JavaScript
+    {%- endcomment -%}
+    <noscript>
+      <button
+        type="submit"
+        class="mallem-language-switcher__button">
+        {{ 'localization.update_language' | t }}
+      </button>
+    </noscript>
+
+  </form>
+
+{%- endif -%}
+
+{%- comment -%}
+  INLINE STYLES
+  Minimal styling for header integration
+  Why: Ensures usable appearance without external CSS
+{%- endcomment -%}
+<style>
+  .mallem-language-switcher {
+    display: inline-block;
+  }
+
+  .mallem-language-switcher__wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .mallem-language-switcher__select {
+    appearance: none;
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding-block: 0.5rem;
+    padding-inline-start: 0.75rem;
+    padding-inline-end: 2rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: inherit;
+    min-width: 120px;
+  }
+
+  .mallem-language-switcher__select:hover {
+    border-color: rgba(0, 0, 0, 0.4);
+  }
+
+  .mallem-language-switcher__select:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  .mallem-language-switcher__icon {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-end: 0.5rem;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: currentColor;
+    opacity: 0.6;
+  }
+
+  .mallem-language-switcher__button {
+    margin-inline-start: 0.5rem;
+    padding-block: 0.5rem;
+    padding-inline: 1rem;
+    background-color: #000;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+  }
+
+  .mallem-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  /* RTL: Icon positioning handled by logical properties */
+  /* No additional RTL styles needed */
+</style>
