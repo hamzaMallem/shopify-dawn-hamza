@@ -1739,15 +1739,279 @@ Merchants configure in Shopify admin:
 
 ---
 
-## Next: Shipping & Returns System
+## Day 6: Cart Drawer System ✅ Complete
 
-**Priority:** Medium (Complements size guide, enhances trust signals)
-**Depends On:** Product Tabs System ✅, Size Guide System ✅
+**Date:** 2025-12-31
+**Feature:** AJAX Cart Drawer (Kalles-style)
+**Status:** ✅ Production Ready
+
+### What Was Built
+
+#### 1. Global Cart Drawer Component
+- **File:** `snippets/mallem-cart-drawer.liquid` (207 lines)
+- **Purpose:** Single global cart drawer rendered once in theme layout
+- **Implementation:** Web Component with AJAX cart operations
+
+#### 2. Cart Drawer Styles
+- **File:** `assets/mallem-cart-drawer.css` (581 lines)
+- **Purpose:** Complete styling for cart drawer overlay, container, items, and footer
+- **Features:**
+  - Slides from inline-end (RTL/LTR safe)
+  - Transform-based animations (GPU accelerated)
+  - Mobile-first responsive design
+  - Loading states with spinner
+  - Empty state design
+  - Trust badge support (COD)
+  - Focus trap styles
+  - Scrollable body with custom scrollbar
+
+#### 3. Cart Drawer JavaScript
+- **File:** `assets/mallem-cart-drawer.js` (407 lines)
+- **Purpose:** Handle cart interactions via Shopify Cart API
+- **Features:**
+  - Event-driven architecture (listens to mallem:cart-add)
+  - Fetches cart via /cart.js
+  - Updates quantity via /cart/change.js
+  - Removes items (set quantity to 0)
+  - Mustache-style template rendering
+  - Focus trap and keyboard navigation
+  - Debounced quantity updates (300ms)
+  - Auto-open on add-to-cart
+  - Body scroll lock when open
+  - Escape key closes drawer
+  - Form interception (AJAX add to cart)
+
+### Features
+
+#### Core Functionality
+- Drawer slides from inline-end (right in LTR, left in RTL)
+- Single global drawer instance (rendered once)
+- Opens automatically on add-to-cart
+- Fetches cart via Shopify Cart API (/cart.js)
+- Supports quantity update and item removal
+- Shows subtotal and checkout button
+- COD trust badge support (optional)
+- Empty state with continue shopping link
+- Line item display (image, title, variant, price, quantity)
+
+#### AJAX Operations
+- `GET /cart.js` - Fetch current cart state
+- `POST /cart/add.js` - Add item to cart
+- `POST /cart/change.js` - Update line item quantity
+- Debounced updates (300ms) to avoid API spam
+- Loading states during requests
+- Error handling with fallback
+
+#### Accessibility
+- ARIA dialog with `role="dialog"` and `aria-modal="true"`
+- Focus trap (Tab cycles within drawer)
+- Keyboard navigation (Escape to close)
+- Screen reader announcements (aria-live regions)
+- Large tap targets (44px minimum)
+- Focus visible outlines
+- Keyboard-accessible controls
+
+#### RTL Support
+- All positioning uses CSS logical properties
+- `inset-inline-end` for drawer position
+- `padding-inline`, `margin-block` for spacing
+- `text-align: start` for alignment
+- Transform directions flip automatically with `dir="rtl"`
+- Logical properties throughout: `inset-block`, `border-block-end`
+
+#### Mobile-First Design
+- Full-width drawer on mobile (max 420px)
+- Responsive spacing (reduced padding on mobile)
+- Touch-optimized tap targets
+- Smooth scrolling on mobile (webkit overflow scrolling)
+- Custom scrollbar styling
+- Overlay with backdrop blur
+
+#### Template Rendering
+- Client-side Mustache-style templates
+- Item template (`#mallem-cart-item-template`)
+- Empty state template (`#mallem-cart-empty-template`)
+- Dynamic rendering on cart updates
+- No page reloads
+
+### Files Added
+- `snippets/mallem-cart-drawer.liquid` (new)
+- `assets/mallem-cart-drawer.css` (new)
+- `assets/mallem-cart-drawer.js` (new)
+
+### Files Modified
+- `layout/theme.liquid` (integrated drawer snippet, CSS, and JS)
+- `locales/en.default.json` (added mallem.trust_badges translation keys)
+- `locales/ar.json` (added mallem.trust_badges translation keys)
+
+### Key Architectural Patterns
+
+#### 1. Web Component Pattern
+- Uses Custom Elements API (`customElements.define('cart-drawer', MallemCartDrawer)`)
+- Encapsulated component logic
+- Lifecycle hooks (`connectedCallback`, `disconnectedCallback`)
+- Self-contained state management
+- Event-driven architecture
+
+#### 2. Event-Driven Cart Updates
+- Listens to `mallem:cart-add` custom event
+- Intercepts all product forms globally (`form[action*="/cart/add"]`)
+- Dispatches custom events on cart operations
+- Decoupled from product form implementation
+- Works with any product form structure
+
+#### 3. Single Instance Architecture
+- One drawer for entire theme
+- Rendered once in `layout/theme.liquid`
+- Reused across all pages
+- Content updated dynamically on state change
+- No duplicate DOM elements
+
+#### 4. Progressive Enhancement
+- Drawer renders with `hidden` attribute
+- Works without JavaScript (forms post to /cart)
+- JavaScript enhances with AJAX operations
+- Graceful degradation if JS fails
+- No breaking changes
+
+#### 5. Shopify Cart API Integration
+- Uses official Shopify Cart API endpoints
+- JSON responses for all operations
+- No custom backend required
+- Compatible with Shopify checkout flow
+- Works with cart attributes and notes
+
+#### 6. Debounced Updates
+- Quantity changes queued in Map
+- Debounce timer (300ms) prevents API spam
+- Batch updates processed sequentially
+- Optimistic UI updates
+- Loading states during requests
+
+### Integration Points
+
+#### Theme Layout Integration
+1. Render drawer in `layout/theme.liquid` before `</body>`:
+   ```liquid
+   {% render 'mallem-cart-drawer' %}
+   ```
+
+2. Load CSS in `<head>`:
+   ```liquid
+   {{ 'mallem-cart-drawer.css' | asset_url | stylesheet_tag }}
+   ```
+
+3. Load JS before `</body>`:
+   ```liquid
+   <script src="{{ 'mallem-cart-drawer.js' | asset_url }}" defer></script>
+   ```
+
+#### Product Form Integration
+- JavaScript automatically intercepts all forms with `action="/cart/add"`
+- No manual integration required
+- Compatible with Dawn product forms
+- Works with custom product forms
+
+#### Event System
+- `mallem:cart-add` - Triggered after successful add-to-cart
+- Custom event bubbles to document
+- Analytics integration point
+- Other components can listen and react
+
+#### Translation Keys
+- `sections.cart.title` - Cart drawer title
+- `sections.cart.subtotal` - Subtotal label
+- `sections.cart.checkout` - Checkout button text
+- `sections.cart.empty` - Empty cart message
+- `mallem.trust_badges.cod_available` - COD badge text
+- `products.product.quantity.*` - Quantity control labels
+- `sections.cart.remove_title` - Remove item label
+
+### Technical Highlights
+
+#### Performance
+- `position: fixed` prevents reflow
+- `transform` and `opacity` for GPU-accelerated animations
+- CSS `contain: layout style paint` for isolation
+- Debounced API calls (300ms)
+- Event delegation for dynamic content
+- Single drawer instance (no duplication)
+
+#### Cart API Usage
+- Fetch current cart: `GET /cart.js`
+- Add item: `POST /cart/add.js` with FormData
+- Update quantity: `POST /cart/change.js` with `{ line, quantity }`
+- Response format: JSON cart object
+- Line items indexed starting at 1
+
+#### Mustache-Style Templates
+- Simple template rendering without external libraries
+- Supports conditionals: `{{#field}}...{{/field}}`
+- Supports variables: `{{field}}`
+- Templates in `<template>` elements
+- No build step required
+
+#### Focus Management
+- `focusableElements` array cached on open
+- Focus trap prevents Tab escaping drawer
+- Shift+Tab cycles backward
+- Focus restored to trigger on close
+- First focusable element receives focus on open
+
+#### Body Scroll Lock
+- `document.body.style.overflow = 'hidden'` on open
+- Restored on close
+- Prevents background scrolling on mobile
+- No layout shift
+
+#### Empty State Handling
+- Displays empty cart icon (SVG)
+- Message and CTA button
+- Footer hidden when cart empty
+- Graceful UX
+
+### Mobile Optimization
+
+#### Responsive Behavior
+- Full-width drawer on mobile (max 100vw)
+- Reduced padding (1rem vs 1.5rem)
+- Smaller item images (80px)
+- Compact quantity controls
+- Touch-friendly buttons
+
+#### Scrolling
+- Drawer body scrollable with custom scrollbar
+- Webkit overflow scrolling for smooth mobile scroll
+- Header and footer sticky (flex-shrink: 0)
+- No body scroll when drawer open
+
+### Use Cases
+- Dropshipping stores (quick checkout)
+- MENA markets (COD badge visibility)
+- Mobile-first audiences (90%+ mobile traffic)
+- High-converting checkout flow
+- Upsell/cross-sell integration point
+- Cart abandonment reduction
+
+### Browser Compatibility
+- Custom Elements v1 (all modern browsers)
+- Fetch API (all modern browsers)
+- CSS logical properties (all modern browsers)
+- Graceful degradation (forms post without JS)
+
+---
+
+## Next: Cart Upsells or Free Shipping Progress Bar
+
+**Priority:** High (Complements cart drawer, improves AOV and conversion)
+**Depends On:** Cart Drawer System ✅
 
 ### Alternative Next Steps
-- **Cart Drawer (Kalles-style):** High priority - Builds on drawer system, improves conversion
+- **Free Shipping Progress Bar:** Show progress toward free shipping threshold in cart drawer
+- **Cart Upsells:** Product recommendations in cart drawer
+- **Shipping & Returns System:** Enhances trust signals
 
 ---
 
 **Tracker maintained by:** mallem development team
-**Last updated:** 2025-12-30
+**Last updated:** 2025-12-31

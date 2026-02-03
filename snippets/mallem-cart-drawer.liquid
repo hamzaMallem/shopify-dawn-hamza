@@ -1,119 +1,206 @@
 {%- comment -%}
-  ================================================================================
-  MALLEM CART DRAWER
-  ================================================================================
-
-  Component: Cart Drawer (Slide-in)
-  Purpose: Kalles-style slide-in cart with AJAX operations
-  Used in: layout/theme.liquid (global, rendered once)
+  Component: Cart Drawer
+  Purpose: Global AJAX cart sidebar with add/update/remove functionality
+  Used in: layout/theme.liquid (rendered once)
 
   Features:
-  - AJAX cart add/update/remove (Shopify Cart API)
-  - Auto-open after add-to-cart
-  - Line items with image, title, variant, price, quantity
-  - Dynamic subtotal calculation
-  - Empty cart state
-  - Checkout CTA
-  - Remove line item button
-  - Quantity increment/decrement
+  - AJAX cart updates via Shopify Cart API (/cart.js, /cart/change.js, /cart/add.js)
+  - Event-driven (mallem:cart-add triggers open)
+  - Quantity update and item removal
+  - Auto-open on add-to-cart
+  - Focus trap and keyboard navigation
+  - COD trust badge (optional)
+  - Empty state handling
+  - Line item price display (original + discounted)
 
-  RTL: Slides from inline-end (right in LTR, left in RTL)
-  Performance: Transform-based animations, will-change hints
-  Accessibility: Focus trap, ARIA labels, keyboard navigation (Escape to close)
-
-  Architecture:
-  - Single global drawer (rendered once in layout/theme.liquid)
-  - Opens via data-mallem-cart-drawer-open triggers
-  - Closes via overlay click, close button, or Escape key
-  - Cart state managed by Shopify Cart API (/cart.js)
-  - JavaScript handles AJAX operations and UI updates
-
-  ================================================================================
+  RTL: Slides from inline-end using logical properties
+  Performance: Single instance, lazy-rendered content, event delegation, debounced updates
+  Accessibility: ARIA dialog, focus trap, Escape key support, screen reader announcements
 {%- endcomment -%}
 
-<div class="mallem-cart-drawer" id="mallem-cart-drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="mallem-cart-drawer-title">
-  {%- comment -%}
-    Overlay: Click outside to close
-    WHY separate element: Allows independent animation timing
-  {%- endcomment -%}
-  <div class="mallem-cart-drawer__overlay" data-mallem-cart-drawer-close></div>
+<cart-drawer class="mallem-cart-drawer" id="mallem-cart-drawer" role="dialog" aria-modal="true" aria-label="{{ 'sections.cart.title' | t }}" hidden>
+  <div class="mallem-cart-drawer__overlay" data-drawer-close></div>
 
-  {%- comment -%}
-    Main Drawer Panel
-    WHY inline-end positioning: Slides from right (LTR) or left (RTL) automatically
-  {%- endcomment -%}
-  <div class="mallem-cart-drawer__panel">
-    {%- comment -%}
-      Header: Title + Close Button
-      WHY sticky: Remains visible during scroll
-    {%- endcomment -%}
+  <div class="mallem-cart-drawer__container">
+    {%- comment -%} Header {%- endcomment -%}
     <div class="mallem-cart-drawer__header">
-      <h2 class="mallem-cart-drawer__title" id="mallem-cart-drawer-title">
+      <h2 class="mallem-cart-drawer__title">
         {{ 'sections.cart.title' | t }}
-        <span class="mallem-cart-drawer__count" data-cart-count>{{ cart.item_count }}</span>
+        <span class="mallem-cart-drawer__count" data-cart-count>0</span>
       </h2>
       <button
         type="button"
         class="mallem-cart-drawer__close"
-        data-mallem-cart-drawer-close
+        data-drawer-close
         aria-label="{{ 'accessibility.close' | t }}"
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
 
-    {%- comment -%}
-      Cart Items Container
-      WHY data-cart-items: JavaScript target for AJAX updates
-    {%- endcomment -%}
-    <div class="mallem-cart-drawer__body" data-cart-items>
-      {%- if cart.item_count > 0 -%}
-        {%- for item in cart.items -%}
-          {%- render 'mallem-cart-drawer-item', item: item -%}
-        {%- endfor -%}
-      {%- else -%}
-        {%- render 'mallem-cart-drawer-empty' -%}
-      {%- endif -%}
+    {%- comment -%} Cart Items (dynamic content) {%- endcomment -%}
+    <div class="mallem-cart-drawer__body" data-cart-body>
+      <div class="mallem-cart-drawer__loading">
+        <div class="mallem-cart-drawer__spinner"></div>
+      </div>
     </div>
 
-    {%- comment -%}
-      Footer: Subtotal + Checkout CTA
-      WHY sticky: Remains visible during scroll
-      WHY hidden when empty: No checkout button if cart is empty
-    {%- endcomment -%}
-    <div class="mallem-cart-drawer__footer" {% if cart.item_count == 0 %}style="display: none;"{% endif %} data-cart-footer>
+    {%- comment -%} Footer {%- endcomment -%}
+    <div class="mallem-cart-drawer__footer" data-cart-footer hidden>
+      {%- if section.settings.show_cod_badge -%}
+        <div class="mallem-cart-drawer__trust">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 1L2 4V7.5C2 11.08 4.69 14.31 8 15C11.31 14.31 14 11.08 14 7.5V4L8 1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M6 8L7.5 9.5L10.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>{{ 'mallem.trust_badges.cod_available' | t }}</span>
+        </div>
+      {%- endif -%}
+
       <div class="mallem-cart-drawer__subtotal">
-        <span class="mallem-cart-drawer__subtotal-label">{{ 'sections.cart.subtotal' | t }}</span>
+        <span>{{ 'sections.cart.subtotal' | t }}</span>
         <span class="mallem-cart-drawer__subtotal-price" data-cart-subtotal>
           {{ cart.total_price | money }}
         </span>
       </div>
 
-      {%- comment -%}
-        Shipping Notice
-        WHY: Set customer expectations (taxes/shipping calculated at checkout)
-      {%- endcomment -%}
-      <p class="mallem-cart-drawer__note">
-        {{ 'sections.cart.taxes_and_shipping_policy_at_checkout_html' | t }}
-      </p>
+      {%- if section.settings.show_shipping_note -%}
+        <p class="mallem-cart-drawer__note">
+          {{ 'sections.cart.taxes_and_shipping_policy_at_checkout_html' | t }}
+        </p>
+      {%- endif -%}
 
-      {%- comment -%}
-        Checkout Button
-        WHY: Primary conversion action
-      {%- endcomment -%}
-      <a href="{{ routes.cart_url }}" class="mallem-cart-drawer__checkout">
+      <button
+        type="button"
+        class="mallem-cart-drawer__checkout"
+        data-cart-checkout
+        onclick="window.location.href='/checkout'"
+      >
         {{ 'sections.cart.checkout' | t }}
-      </a>
+      </button>
 
-      {%- comment -%}
-        View Cart Link
-        WHY: Allow users to view full cart page for editing
-      {%- endcomment -%}
       <a href="{{ routes.cart_url }}" class="mallem-cart-drawer__view-cart">
-        {{ 'sections.cart.view_cart' | t }}
+        {{ 'general.continue_shopping' | t }}
       </a>
     </div>
   </div>
-</div>
+</cart-drawer>
+
+{%- comment -%} Item Template (Mustache-style for JS rendering) {%- endcomment -%}
+<template id="mallem-cart-item-template">
+  <div class="mallem-cart-item" data-line-index="{{index}}">
+    <a href="{{url}}" class="mallem-cart-item__image">
+      <img
+        src="{{image}}"
+        alt="{{title}}"
+        width="80"
+        height="80"
+        loading="lazy"
+      >
+    </a>
+
+    <div class="mallem-cart-item__details">
+      <a href="{{url}}" class="mallem-cart-item__title">{{title}}</a>
+
+      {{#variant_title}}
+      <div class="mallem-cart-item__variant">{{variant_title}}</div>
+      {{/variant_title}}
+
+      <div class="mallem-cart-item__footer">
+        <div class="mallem-cart-item__quantity">
+          <button
+            type="button"
+            class="mallem-cart-item__qty-btn"
+            data-qty-decrease
+            aria-label="{{ 'products.product.quantity.decrease' | t }}"
+          >
+            <svg width="10" height="2" viewBox="0 0 10 2" fill="none" aria-hidden="true">
+              <path d="M0 1H10" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </button>
+
+          <input
+            type="number"
+            class="mallem-cart-item__qty-input"
+            value="{{quantity}}"
+            min="0"
+            data-qty-input
+            aria-label="{{ 'products.product.quantity.input_label' | t }}"
+          >
+
+          <button
+            type="button"
+            class="mallem-cart-item__qty-btn"
+            data-qty-increase
+            aria-label="{{ 'products.product.quantity.increase' | t }}"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+              <path d="M5 0V10M0 5H10" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="mallem-cart-item__price">
+          {{#compare_at_price}}
+          <span class="mallem-cart-item__compare-price">{{compare_at_price}}</span>
+          {{/compare_at_price}}
+          <span class="mallem-cart-item__final-price">{{final_price}}</span>
+        </div>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="mallem-cart-item__remove"
+      data-remove-item
+      aria-label="{{ 'sections.cart.remove_title' | t }}"
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+</template>
+
+{%- comment -%} Empty State Template {%- endcomment -%}
+<template id="mallem-cart-empty-template">
+  <div class="mallem-cart-drawer__empty">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M8 16L12 12H52L56 16V52C56 54.2091 54.2091 56 52 56H12C9.79086 56 8 54.2091 8 52V16Z" stroke="currentColor" stroke-width="2"/>
+      <path d="M20 28V20C20 13.3726 25.3726 8 32 8C38.6274 8 44 13.3726 44 20V28" stroke="currentColor" stroke-width="2"/>
+    </svg>
+    <h3>{{ 'sections.cart.empty' | t }}</h3>
+    <p>{{ 'general.continue_shopping' | t }}</p>
+    <a href="/collections/all" class="mallem-cart-drawer__continue-shopping">
+      {{ 'general.continue_shopping' | t }}
+    </a>
+  </div>
+</template>
+
+{% schema %}
+{
+  "name": "t:sections.cart.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Cart Drawer Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cod_badge",
+      "label": "Show COD badge",
+      "info": "Display Cash on Delivery trust badge in cart footer",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_shipping_note",
+      "label": "Show shipping note",
+      "info": "Display taxes and shipping policy message",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

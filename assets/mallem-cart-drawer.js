@@ -1,610 +1,407 @@
 /*
-================================================================================
-MALLEM CART DRAWER
-================================================================================
+  Component: Cart Drawer JavaScript
+  Purpose: AJAX cart with Shopify Cart API integration
 
-Purpose: Kalles-style slide-in cart with AJAX operations
-Architecture: Class-based, event delegation, Shopify Cart API
+  Features:
+  - Event-driven architecture (listens to mallem:cart-add)
+  - Fetches cart via /cart.js
+  - Updates quantity via /cart/change.js
+  - Removes items (set quantity to 0)
+  - Mustache-style template rendering
+  - Focus trap and keyboard navigation
+  - Debounced quantity updates
 
-Features:
-- AJAX cart add/update/remove via Shopify Cart API
-- Auto-open after add-to-cart
-- Debounced quantity updates
-- Optimistic UI updates
-- Focus trap when open
-- Keyboard navigation (Escape to close)
+  API Endpoints:
+  - GET /cart.js - Fetch cart state
+  - POST /cart/add.js - Add item
+  - POST /cart/change.js - Update line item
 
-Shopify Cart API:
-- GET  /cart.js          - Fetch cart state
-- POST /cart/add.js      - Add item to cart
-- POST /cart/change.js   - Update line item quantity
-- POST /cart/clear.js    - Clear cart
+  Performance:
+  - Event delegation for dynamic content
+  - Debounced API calls (300ms)
+  - requestAnimationFrame for smooth UI updates
 
-Performance:
-- Debounce quantity updates (500ms)
-- Event delegation for dynamic content
-- requestAnimationFrame for UI updates
-
-Accessibility:
-- Focus trap when drawer open
-- ARIA attributes updated
-- Keyboard navigation
-- Screen reader announcements
-
-================================================================================
+  Accessibility:
+  - Focus trap when open
+  - Escape key closes
+  - ARIA live regions for screen readers
 */
 
-class MallemCartDrawer {
-  constructor(element) {
-    // Core elements
-    this.drawer = element;
-    this.overlay = element.querySelector('.mallem-cart-drawer__overlay');
-    this.panel = element.querySelector('.mallem-cart-drawer__panel');
-    this.closeButtons = element.querySelectorAll('[data-mallem-cart-drawer-close]');
+class MallemCartDrawer extends HTMLElement {
+  constructor() {
+    super();
 
-    // Content elements (updated dynamically)
-    this.itemsContainer = element.querySelector('[data-cart-items]');
-    this.countElement = element.querySelector('[data-cart-count]');
-    this.subtotalElement = element.querySelector('[data-cart-subtotal]');
-    this.footerElement = element.querySelector('[data-cart-footer]');
+    // WHY: Cache DOM elements for performance
+    this.overlay = this.querySelector('[data-drawer-close]');
+    this.closeBtn = this.querySelector('[data-drawer-close]');
+    this.body = this.querySelector('[data-cart-body]');
+    this.footer = this.querySelector('[data-cart-footer]');
+    this.countEl = this.querySelector('[data-cart-count]');
+    this.subtotalEl = this.querySelector('[data-cart-subtotal]');
+    this.checkoutBtn = this.querySelector('[data-cart-checkout]');
 
-    // State
+    // WHY: Templates for rendering
+    this.itemTemplate = document.getElementById('mallem-cart-item-template');
+    this.emptyTemplate = document.getElementById('mallem-cart-empty-template');
+
+    // WHY: State management
     this.isOpen = false;
     this.isUpdating = false;
-    this.updateQueue = new Map(); // WHY: Debounce multiple quantity changes
+    this.updateQueue = new Map();
     this.debounceTimer = null;
+    this.focusTrap = null;
 
-    // Focus trap
-    this.focusableElements = [];
-    this.previousFocus = null;
-
-    // Bind methods
+    // WHY: Bind methods to preserve context
     this.open = this.open.bind(this);
     this.close = this.close.bind(this);
     this.handleKeydown = this.handleKeydown.bind(this);
-    this.handleFocusTrap = this.handleFocusTrap.bind(this);
-
-    // Initialize
-    this.init();
   }
 
-  init() {
-    console.log('[Mallem Cart Drawer] Initializing...');
+  connectedCallback() {
+    // WHY: Set up event listeners after element is added to DOM
+    this.setupEventListeners();
+    this.fetchCart();
+  }
 
-    // Close button listeners
-    this.closeButtons.forEach(button => {
-      button.addEventListener('click', this.close);
-    });
+  setupEventListeners() {
+    // Close handlers
+    const closeTriggers = this.querySelectorAll('[data-drawer-close]');
+    closeTriggers.forEach(el => el.addEventListener('click', this.close));
 
-    // Overlay click to close
-    this.overlay.addEventListener('click', this.close);
-
-    // Event delegation for dynamic content
-    this.drawer.addEventListener('click', this.handleDrawerClick.bind(this));
-    this.drawer.addEventListener('input', this.handleQuantityInput.bind(this));
+    // Event delegation for cart items
+    this.body.addEventListener('click', this.handleBodyClick.bind(this));
+    this.body.addEventListener('input', this.handleQuantityInput.bind(this));
 
     // Keyboard navigation
     document.addEventListener('keydown', this.handleKeydown);
 
-    // Intercept add-to-cart forms
-    this.interceptAddToCart();
+    // Listen for add-to-cart events
+    document.addEventListener('mallem:cart-add', this.handleCartAdd.bind(this));
 
-    console.log('[Mallem Cart Drawer] ✓ Initialized');
+    // Intercept product forms
+    this.interceptForms();
   }
 
-  /**
-   * Open drawer
-   */
+  // ============================================================================
+  // DRAWER CONTROL
+  // ============================================================================
+
   open() {
-    console.log('[Mallem Cart Drawer] Opening drawer');
+    if (this.isOpen) return;
 
-    // Update state
     this.isOpen = true;
-    this.drawer.setAttribute('aria-hidden', 'false');
+    this.hidden = false;
 
-    // Store previous focus for restoration
-    this.previousFocus = document.activeElement;
-
-    // Prevent body scroll
+    // WHY: Prevent body scroll on mobile
     document.body.style.overflow = 'hidden';
 
-    // Set up focus trap
+    // WHY: Set up focus trap
     this.setupFocusTrap();
 
-    // Focus first focusable element
-    requestAnimationFrame(() => {
-      const firstFocusable = this.panel.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (firstFocusable) {
-        firstFocusable.focus();
-      }
-    });
+    // WHY: Announce to screen readers
+    this.announce('Cart opened');
   }
 
-  /**
-   * Close drawer
-   */
   close() {
-    console.log('[Mallem Cart Drawer] Closing drawer');
+    if (!this.isOpen) return;
 
-    // Update state
     this.isOpen = false;
-    this.drawer.setAttribute('aria-hidden', 'true');
+    this.hidden = true;
 
-    // Restore body scroll
+    // WHY: Restore body scroll
     document.body.style.overflow = '';
 
-    // Restore previous focus
-    if (this.previousFocus && this.previousFocus.focus) {
-      this.previousFocus.focus();
+    // WHY: Return focus to trigger element
+    if (this.lastFocusedElement) {
+      this.lastFocusedElement.focus();
     }
+
+    this.announce('Cart closed');
   }
 
-  /**
-   * Handle keyboard events
-   */
   handleKeydown(e) {
     if (!this.isOpen) return;
 
-    // Escape key closes drawer
     if (e.key === 'Escape') {
       this.close();
-      return;
     }
 
-    // Tab key focus trap
     if (e.key === 'Tab') {
-      this.handleFocusTrap(e);
+      this.trapFocus(e);
     }
   }
 
-  /**
-   * Set up focus trap
-   */
   setupFocusTrap() {
-    // Find all focusable elements
-    this.focusableElements = Array.from(
-      this.panel.querySelectorAll(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )
-    );
+    // WHY: Find all focusable elements for keyboard navigation
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    this.focusableElements = Array.from(this.querySelectorAll(focusableSelector));
+
+    if (this.focusableElements.length > 0) {
+      this.focusableElements[0].focus();
+    }
   }
 
-  /**
-   * Handle focus trap on Tab
-   */
-  handleFocusTrap(e) {
+  trapFocus(e) {
     if (this.focusableElements.length === 0) return;
 
-    const firstElement = this.focusableElements[0];
-    const lastElement = this.focusableElements[this.focusableElements.length - 1];
+    const first = this.focusableElements[0];
+    const last = this.focusableElements[this.focusableElements.length - 1];
 
-    // Shift + Tab on first element -> focus last
-    if (e.shiftKey && document.activeElement === firstElement) {
+    if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
-      lastElement.focus();
-    }
-    // Tab on last element -> focus first
-    else if (!e.shiftKey && document.activeElement === lastElement) {
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
       e.preventDefault();
-      firstElement.focus();
+      first.focus();
     }
   }
 
-  /**
-   * Handle clicks inside drawer (event delegation)
-   */
-  handleDrawerClick(e) {
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+
+  handleBodyClick(e) {
     // Quantity decrease
     if (e.target.closest('[data-qty-decrease]')) {
-      e.preventDefault();
-      const item = e.target.closest('[data-cart-item]');
+      const item = e.target.closest('.mallem-cart-item');
       const input = item.querySelector('[data-qty-input]');
-      const currentQty = parseInt(input.value, 10);
-      const newQty = Math.max(0, currentQty - 1);
+      const newQty = Math.max(0, parseInt(input.value) - 1);
       input.value = newQty;
-      this.queueQuantityUpdate(input.dataset.lineKey, newQty);
+      this.queueUpdate(item.dataset.lineIndex, newQty);
     }
 
     // Quantity increase
     if (e.target.closest('[data-qty-increase]')) {
-      e.preventDefault();
-      const item = e.target.closest('[data-cart-item]');
+      const item = e.target.closest('.mallem-cart-item');
       const input = item.querySelector('[data-qty-input]');
-      const currentQty = parseInt(input.value, 10);
-      const newQty = currentQty + 1;
+      const newQty = parseInt(input.value) + 1;
       input.value = newQty;
-      this.queueQuantityUpdate(input.dataset.lineKey, newQty);
+      this.queueUpdate(item.dataset.lineIndex, newQty);
     }
 
     // Remove item
     if (e.target.closest('[data-remove-item]')) {
-      e.preventDefault();
-      const button = e.target.closest('[data-remove-item]');
-      const lineKey = button.dataset.lineKey;
-      this.removeItem(lineKey);
+      const item = e.target.closest('.mallem-cart-item');
+      this.queueUpdate(item.dataset.lineIndex, 0);
     }
   }
 
-  /**
-   * Handle quantity input changes
-   */
   handleQuantityInput(e) {
-    if (e.target.matches('[data-qty-input]')) {
-      const input = e.target;
-      const lineKey = input.dataset.lineKey;
-      const newQty = parseInt(input.value, 10) || 0;
-      this.queueQuantityUpdate(lineKey, newQty);
-    }
+    if (!e.target.matches('[data-qty-input]')) return;
+
+    const item = e.target.closest('.mallem-cart-item');
+    const newQty = Math.max(0, parseInt(e.target.value) || 0);
+    e.target.value = newQty;
+    this.queueUpdate(item.dataset.lineIndex, newQty);
   }
 
-  /**
-   * Queue quantity update (debounced)
-   * WHY: Avoid spamming Shopify API with rapid clicks
-   */
-  queueQuantityUpdate(lineKey, quantity) {
-    // Add to queue
-    this.updateQueue.set(lineKey, quantity);
-
-    // Clear existing timer
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-
-    // Debounce: Execute after 500ms of no changes
-    this.debounceTimer = setTimeout(() => {
-      this.processUpdateQueue();
-    }, 500);
+  handleCartAdd(e) {
+    // WHY: Listen for custom add-to-cart events from product forms
+    this.fetchCart().then(() => this.open());
   }
 
-  /**
-   * Process queued quantity updates
-   */
-  async processUpdateQueue() {
-    if (this.updateQueue.size === 0) return;
+  // ============================================================================
+  // CART API
+  // ============================================================================
 
-    console.log('[Mallem Cart Drawer] Processing update queue:', this.updateQueue);
-
-    // Build updates object for Shopify API
-    const updates = {};
-    this.updateQueue.forEach((quantity, lineKey) => {
-      updates[lineKey] = quantity;
-    });
-
-    // Clear queue
-    this.updateQueue.clear();
-
-    // Update cart
-    try {
-      await this.updateCart(updates);
-    } catch (error) {
-      console.error('[Mallem Cart Drawer] Update failed:', error);
-      this.showError('Failed to update cart. Please refresh and try again.');
-    }
-  }
-
-  /**
-   * Remove item from cart
-   */
-  async removeItem(lineKey) {
-    console.log('[Mallem Cart Drawer] Removing item:', lineKey);
-
-    try {
-      await this.updateCart({ [lineKey]: 0 });
-    } catch (error) {
-      console.error('[Mallem Cart Drawer] Remove failed:', error);
-      this.showError('Failed to remove item. Please try again.');
-    }
-  }
-
-  /**
-   * Update cart via Shopify Cart API
-   * @param {Object} updates - { line_key: quantity }
-   */
-  async updateCart(updates) {
-    this.isUpdating = true;
-    this.drawer.classList.add('mallem-cart-drawer--loading');
-
-    try {
-      const response = await fetch('/cart/update.js', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ updates }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const cart = await response.json();
-      console.log('[Mallem Cart Drawer] Cart updated:', cart);
-
-      // Re-render drawer with new cart state
-      await this.renderCart(cart);
-
-    } finally {
-      this.isUpdating = false;
-      this.drawer.classList.remove('mallem-cart-drawer--loading');
-    }
-  }
-
-  /**
-   * Add item to cart
-   * @param {FormData} formData - Add-to-cart form data
-   */
-  async addToCart(formData) {
-    console.log('[Mallem Cart Drawer] Adding to cart');
-
-    try {
-      const response = await fetch('/cart/add.js', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.description || 'Failed to add to cart');
-      }
-
-      const item = await response.json();
-      console.log('[Mallem Cart Drawer] Item added:', item);
-
-      // Fetch updated cart state
-      await this.fetchCart();
-
-      // Open drawer
-      this.open();
-
-    } catch (error) {
-      console.error('[Mallem Cart Drawer] Add to cart failed:', error);
-      this.showError(error.message || 'Failed to add item. Please try again.');
-      throw error; // Re-throw for form handler
-    }
-  }
-
-  /**
-   * Fetch current cart state
-   */
   async fetchCart() {
-    console.log('[Mallem Cart Drawer] Fetching cart state');
-
     try {
       const response = await fetch('/cart.js');
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
       const cart = await response.json();
-      console.log('[Mallem Cart Drawer] Cart fetched:', cart);
-
-      await this.renderCart(cart);
-
+      this.renderCart(cart);
     } catch (error) {
-      console.error('[Mallem Cart Drawer] Fetch failed:', error);
-      this.showError('Failed to load cart. Please refresh the page.');
+      console.error('[Cart Drawer] Fetch failed:', error);
     }
   }
 
-  /**
-   * Render cart (fetch HTML from cart.js section rendering endpoint)
-   * WHY: Use Shopify section rendering for consistency with theme templates
-   */
-  async renderCart(cart) {
-    console.log('[Mallem Cart Drawer] Rendering cart with', cart.item_count, 'items');
+  queueUpdate(line, quantity) {
+    // WHY: Debounce rapid quantity changes
+    this.updateQueue.set(line, quantity);
 
-    // Update count badge
-    if (this.countElement) {
-      this.countElement.textContent = cart.item_count;
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => {
+      this.processQueue();
+    }, 300);
+  }
+
+  async processQueue() {
+    if (this.isUpdating || this.updateQueue.size === 0) return;
+
+    this.isUpdating = true;
+    this.showLoading();
+
+    // WHY: Process each update sequentially to avoid race conditions
+    for (const [line, quantity] of this.updateQueue) {
+      try {
+        await fetch('/cart/change.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ line, quantity })
+        });
+      } catch (error) {
+        console.error('[Cart Drawer] Update failed:', error);
+      }
+    }
+
+    this.updateQueue.clear();
+    await this.fetchCart();
+
+    this.isUpdating = false;
+    this.hideLoading();
+  }
+
+  interceptForms() {
+    // WHY: Intercept all product forms to prevent page reload
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      if (!form.action?.includes('/cart/add')) return;
+
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const submitBtn = form.querySelector('[type="submit"]');
+
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        await fetch('/cart/add.js', {
+          method: 'POST',
+          body: formData
+        });
+
+        await this.fetchCart();
+        this.open();
+
+        // WHY: Dispatch custom event for other components
+        document.dispatchEvent(new CustomEvent('mallem:cart-add'));
+      } catch (error) {
+        console.error('[Cart Drawer] Add failed:', error);
+        alert('Failed to add item to cart');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  // ============================================================================
+  // RENDERING
+  // ============================================================================
+
+  renderCart(cart) {
+    // Update count
+    if (this.countEl) {
+      this.countEl.textContent = cart.item_count;
     }
 
     // Update subtotal
-    if (this.subtotalElement) {
-      this.subtotalElement.textContent = this.formatMoney(cart.total_price);
+    if (this.subtotalEl) {
+      this.subtotalEl.textContent = this.formatMoney(cart.total_price);
     }
 
-    // Show/hide footer based on item count
-    if (this.footerElement) {
-      this.footerElement.style.display = cart.item_count > 0 ? '' : 'none';
+    // Show/hide footer
+    if (this.footer) {
+      this.footer.hidden = cart.item_count === 0;
     }
 
-    // Fetch rendered HTML from section rendering API
-    // WHY: Ensures consistent rendering with Liquid templates
-    try {
-      const response = await fetch(`${window.location.pathname}?sections=mallem-cart-drawer-items`);
-
-      if (response.ok) {
-        const data = await response.json();
-        const html = data['mallem-cart-drawer-items'];
-
-        if (html && this.itemsContainer) {
-          this.itemsContainer.innerHTML = html;
-        }
-      } else {
-        // Fallback: Render items client-side
-        this.renderItemsClientSide(cart);
-      }
-    } catch (error) {
-      console.warn('[Mallem Cart Drawer] Section rendering failed, using client-side fallback:', error);
-      this.renderItemsClientSide(cart);
+    // Render items
+    if (cart.item_count === 0) {
+      this.renderEmpty();
+    } else {
+      this.renderItems(cart.items);
     }
 
-    // Update focus trap with new elements
+    // Update focus trap
     if (this.isOpen) {
       this.setupFocusTrap();
     }
   }
 
-  /**
-   * Render cart items client-side (fallback)
-   * WHY: If section rendering fails, render basic HTML
-   */
-  renderItemsClientSide(cart) {
-    if (!this.itemsContainer) return;
+  renderItems(items) {
+    if (!this.itemTemplate) return;
 
-    // Empty state
-    if (cart.item_count === 0) {
-      this.itemsContainer.innerHTML = this.getEmptyStateHTML();
-      return;
-    }
+    const html = items.map((item, index) => {
+      return this.renderTemplate(this.itemTemplate.innerHTML, {
+        index: index + 1,
+        url: item.url,
+        image: this.getImageUrl(item.image, 80),
+        title: item.product_title,
+        variant_title: item.variant_title !== 'Default Title' ? item.variant_title : null,
+        quantity: item.quantity,
+        compare_at_price: item.original_price > item.final_price ? this.formatMoney(item.original_price) : null,
+        final_price: this.formatMoney(item.final_price)
+      });
+    }).join('');
 
-    // Render line items
-    const itemsHTML = cart.items.map(item => this.getLineItemHTML(item)).join('');
-    this.itemsContainer.innerHTML = itemsHTML;
+    this.body.innerHTML = html;
   }
 
-  /**
-   * Get empty state HTML
-   */
-  getEmptyStateHTML() {
-    return `
-      <div class="mallem-cart-drawer-empty">
-        <div class="mallem-cart-drawer-empty__icon">
-          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 20L25 50H55L60 20H20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="30" cy="60" r="3" stroke="currentColor" stroke-width="2"/>
-            <circle cx="50" cy="60" r="3" stroke="currentColor" stroke-width="2"/>
-            <path d="M10 10H15L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <h3 class="mallem-cart-drawer-empty__title">Your cart is empty</h3>
-        <p class="mallem-cart-drawer-empty__description">Add items to your cart to see them here.</p>
-        <button type="button" class="mallem-cart-drawer-empty__cta" data-mallem-cart-drawer-close>Continue Shopping</button>
-      </div>
-    `;
+  renderEmpty() {
+    if (!this.emptyTemplate) return;
+    this.body.innerHTML = this.emptyTemplate.innerHTML;
   }
 
-  /**
-   * Get line item HTML (simplified client-side rendering)
-   */
-  getLineItemHTML(item) {
-    const imageURL = item.image ? this.getImageURL(item.image, 120) : '';
-    const variantOptions = item.options_with_values
-      ? item.options_with_values.map(opt => `<span>${opt.name}: ${opt.value}</span>`).join('')
-      : '';
-
-    return `
-      <div class="mallem-cart-drawer-item" data-cart-item>
-        <div class="mallem-cart-drawer-item__image">
-          <a href="${item.url}">
-            ${imageURL ? `<img src="${imageURL}" alt="${item.title}" width="120" height="120" loading="lazy">` : '<div class="mallem-cart-drawer-item__image-placeholder"></div>'}
-          </a>
-        </div>
-        <div class="mallem-cart-drawer-item__details">
-          <a href="${item.url}" class="mallem-cart-drawer-item__title">${item.product_title}</a>
-          ${variantOptions ? `<div class="mallem-cart-drawer-item__variant">${variantOptions}</div>` : ''}
-          <div class="mallem-cart-drawer-item__price">
-            <span class="mallem-cart-drawer-item__price-final">${this.formatMoney(item.final_price)}</span>
-          </div>
-          <div class="mallem-cart-drawer-item__quantity">
-            <button type="button" class="mallem-cart-drawer-item__qty-btn" data-qty-decrease>−</button>
-            <input type="number" class="mallem-cart-drawer-item__qty-input" value="${item.quantity}" min="0" data-qty-input data-line-key="${item.key}">
-            <button type="button" class="mallem-cart-drawer-item__qty-btn" data-qty-increase>+</button>
-          </div>
-        </div>
-        <div class="mallem-cart-drawer-item__actions">
-          <div class="mallem-cart-drawer-item__total">${this.formatMoney(item.final_line_price)}</div>
-          <button type="button" class="mallem-cart-drawer-item__remove" data-remove-item data-line-key="${item.key}">×</button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Intercept add-to-cart forms
-   * WHY: Prevent page reload, use AJAX instead
-   */
-  interceptAddToCart() {
-    document.addEventListener('submit', async (e) => {
-      // Check if this is an add-to-cart form
-      const form = e.target;
-      if (form.matches('form[action="/cart/add"]') || form.matches('form[action*="/cart/add"]')) {
-        e.preventDefault();
-
-        const formData = new FormData(form);
-
-        // Disable submit button to prevent double-submit
-        const submitButton = form.querySelector('[type="submit"]');
-        if (submitButton) {
-          submitButton.disabled = true;
-        }
-
-        try {
-          await this.addToCart(formData);
-        } finally {
-          // Re-enable submit button
-          if (submitButton) {
-            submitButton.disabled = false;
-          }
-        }
+  renderTemplate(template, data) {
+    // WHY: Simple Mustache-style template rendering
+    return template.replace(/\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}|\{\{(\w+)\}\}/g, (match, blockKey, blockContent, key) => {
+      if (blockKey) {
+        // Conditional block
+        return data[blockKey] ? blockContent.replace(/\{\{(\w+)\}\}/g, (m, k) => data[k] || '') : '';
+      } else {
+        // Simple replacement
+        return data[key] || '';
       }
     });
   }
 
-  /**
-   * Format money (basic implementation)
-   * WHY: Shopify money_format not available in JS
-   */
+  // ============================================================================
+  // UTILITIES
+  // ============================================================================
+
   formatMoney(cents) {
-    const dollars = (cents / 100).toFixed(2);
-    return `$${dollars}`;
+    // WHY: Use Shopify money format if available
+    if (window.Shopify?.formatMoney) {
+      return window.Shopify.formatMoney(cents);
+    }
+    return `$${(cents / 100).toFixed(2)}`;
   }
 
-  /**
-   * Get image URL with size parameter
-   */
-  getImageURL(imageUrl, size) {
-    if (!imageUrl) return '';
-    return imageUrl.replace(/\.jpg|\.png|\.gif|\.jpeg/gi, (match) => `_${size}x${size}${match}`);
+  getImageUrl(url, size) {
+    if (!url) return '';
+    // WHY: Shopify image URL transformation
+    return url.replace(/\.(jpg|jpeg|png|gif)/, `_${size}x${size}.$1`);
   }
 
-  /**
-   * Show error message (basic implementation)
-   * TODO: Enhance with toast notification
-   */
-  showError(message) {
-    console.error('[Mallem Cart Drawer] Error:', message);
-    alert(message); // Temporary: Replace with toast notification
+  showLoading() {
+    this.body.style.opacity = '0.6';
+    this.body.style.pointerEvents = 'none';
+  }
+
+  hideLoading() {
+    this.body.style.opacity = '';
+    this.body.style.pointerEvents = '';
+  }
+
+  announce(message) {
+    // WHY: Screen reader announcement
+    const liveRegion = document.createElement('div');
+    liveRegion.setAttribute('role', 'status');
+    liveRegion.setAttribute('aria-live', 'polite');
+    liveRegion.className = 'sr-only';
+    liveRegion.textContent = message;
+    document.body.appendChild(liveRegion);
+    setTimeout(() => liveRegion.remove(), 1000);
   }
 }
 
-/**
- * Initialize cart drawer
- */
-function initMallemCartDrawer() {
-  const DRAWER_ID = 'mallem-cart-drawer';
-  const drawerElement = document.getElementById(DRAWER_ID);
+// WHY: Register custom element
+customElements.define('cart-drawer', MallemCartDrawer);
 
-  if (!drawerElement) {
-    console.warn('[Mallem Cart Drawer] INITIALIZATION FAILED: Drawer element not found');
-    console.warn('[Mallem Cart Drawer] Make sure to render mallem-cart-drawer snippet in layout/theme.liquid');
-    return;
-  }
-
-  console.log('[Mallem Cart Drawer] ✓ Drawer element found');
-
-  // Initialize drawer
-  const cartDrawer = new MallemCartDrawer(drawerElement);
-
-  // Global trigger listeners (for cart icon, "Add to Cart" notifications, etc.)
-  document.addEventListener('click', (e) => {
-    const trigger = e.target.closest('[data-mallem-cart-drawer-open]');
-    if (trigger) {
-      e.preventDefault();
-      cartDrawer.open();
+// WHY: Initialize on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const drawer = document.getElementById('mallem-cart-drawer');
+    if (drawer) {
+      console.log('[Cart Drawer] Initialized');
     }
   });
-
-  // Expose globally for debugging
-  window.mallemCartDrawer = cartDrawer;
-
-  console.log('[Mallem Cart Drawer] ✓ Initialization complete');
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initMallemCartDrawer);
-} else {
-  initMallemCartDrawer();
 }
