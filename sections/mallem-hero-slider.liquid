@@ -1,0 +1,449 @@
+{%- comment -%}
+  Component: mallem-hero-slider
+  Purpose: Full-width hero slider with autoplay, RTL support, and MENA-optimized features
+  Used in: Homepage and any template via section groups
+
+  Features:
+  - Up to 6 slides with independent images, text, and dual CTA buttons
+  - Mobile-specific image override per slide (shown < 750px)
+  - CSS translateX animation — zero JS width reads, zero reflow
+  - RTL-aware slide direction via window.Mallem.isRTL
+  - Autoplay paused on hover, focus, visibility change, intersection, reduced-motion
+  - COD badge integration per slide
+  - 9-position text layout via CSS Grid 3×3
+
+  RTL: CSS Grid + logical properties auto-flip positions. JS sign flip reverses translate direction.
+  Performance: eager+fetchpriority on first slide, lazy on rest, srcset 750–2000w, defer JS
+{%- endcomment -%}
+
+{%- liquid
+  case section.settings.slide_height
+    when 'small'
+      assign slide_height = '50vh'
+    when 'large'
+      assign slide_height = '80vh'
+    when 'full'
+      assign slide_height = '100vh'
+    else
+      assign slide_height = '65vh'
+  endcase
+
+  assign slide_count = section.blocks.size
+-%}
+
+<mallem-hero-slider
+  class="mallem-hero-slider{% if section.settings.full_width %} mallem-hero-slider--full-width{% endif %}"
+  data-mallem-hero-slider
+  data-autoplay="{{ section.settings.autoplay }}"
+  data-autoplay-speed="{{ section.settings.autoplay_speed | times: 1000 }}"
+  data-slide-count="{{ slide_count }}"
+  style="--slide-height: {{ slide_height }};"
+  role="region"
+  aria-label="{{ 'sections.mallem_hero_slider.name' | t }}"
+>
+
+  {%- comment -%} Slide track — JS moves this via translateX only {%- endcomment -%}
+  <ul class="mallem-hero-slider__track" aria-live="off">
+    {%- for block in section.blocks -%}
+      {%- assign overlay_opacity = block.settings.overlay_opacity | divided_by: 100.0 -%}
+
+      <li
+        id="slide-{{ section.id }}-{{ forloop.index0 }}"
+        class="mallem-hero-slider__slide"
+        {{ block.shopify_attributes }}
+        aria-label="{{ 'mallem.hero_slider.slide_count' | t: current: forloop.index, total: slide_count }}"
+        aria-roledescription="slide"
+        data-slide-index="{{ forloop.index0 }}"
+        style="--slide-overlay: {{ overlay_opacity }};"
+      >
+
+        {%- comment -%} Background — desktop/mobile images swap via CSS @media {%- endcomment -%}
+        <div class="mallem-hero-slider__media">
+          {%- if block.settings.image != blank -%}
+            <img
+              class="mallem-hero-slider__img mallem-hero-slider__img--desktop"
+              src="{{ block.settings.image | image_url: width: 1500 }}"
+              srcset="
+                {{ block.settings.image | image_url: width: 750 }} 750w,
+                {{ block.settings.image | image_url: width: 1100 }} 1100w,
+                {{ block.settings.image | image_url: width: 1500 }} 1500w,
+                {{ block.settings.image | image_url: width: 1780 }} 1780w,
+                {{ block.settings.image | image_url: width: 2000 }} 2000w
+              "
+              sizes="100vw"
+              width="{{ block.settings.image.width }}"
+              height="{{ block.settings.image.height }}"
+              alt="{{ block.settings.image.alt | escape | default: block.settings.heading | escape }}"
+              {% if forloop.first %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
+            >
+          {%- else -%}
+            <div class="mallem-hero-slider__placeholder mallem-hero-slider__placeholder--desktop">
+              {{ 'lifestyle-1' | placeholder_svg_tag: 'mallem-hero-slider__placeholder-svg' }}
+            </div>
+          {%- endif -%}
+
+          {%- if block.settings.mobile_image != blank -%}
+            <img
+              class="mallem-hero-slider__img mallem-hero-slider__img--mobile"
+              src="{{ block.settings.mobile_image | image_url: width: 750 }}"
+              srcset="
+                {{ block.settings.mobile_image | image_url: width: 750 }} 750w,
+                {{ block.settings.mobile_image | image_url: width: 1100 }} 1100w
+              "
+              sizes="100vw"
+              width="{{ block.settings.mobile_image.width }}"
+              height="{{ block.settings.mobile_image.height }}"
+              alt="{{ block.settings.mobile_image.alt | escape | default: block.settings.heading | escape }}"
+              {% if forloop.first %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
+            >
+          {%- endif -%}
+        </div>
+
+        {%- comment -%}
+          Content: CSS 3×3 grid places content in any of 9 positions.
+          WHY grid over absolute+translate: precise alignment, no percentage guesswork,
+          RTL auto-flips grid column order via writing-mode cascade.
+        {%- endcomment -%}
+        <div class="mallem-hero-slider__content mallem-hero-slider__content--{{ block.settings.text_position }}">
+          <div class="mallem-hero-slider__content-inner">
+
+            {%- if block.settings.show_cod_badge -%}
+              {%- render 'mallem-badge', type: 'cod', show_icon: true -%}
+            {%- endif -%}
+
+            {%- if block.settings.heading != blank -%}
+              <h2 class="mallem-hero-slider__heading mallem-hero-slider__heading--{{ block.settings.heading_size }}">
+                {{- block.settings.heading | escape -}}
+              </h2>
+            {%- endif -%}
+
+            {%- if block.settings.subheading != blank -%}
+              <p class="mallem-hero-slider__subheading">
+                {{- block.settings.subheading | escape -}}
+              </p>
+            {%- endif -%}
+
+            {%- if block.settings.button_label != blank or block.settings.secondary_button_label != blank -%}
+              <div class="mallem-hero-slider__buttons">
+                {%- if block.settings.button_label != blank -%}
+                  <a
+                    href="{{ block.settings.button_link | default: '#' }}"
+                    class="mallem-hero-slider__btn mallem-hero-slider__btn--{{ block.settings.button_style }}"
+                  >
+                    {{- block.settings.button_label | escape -}}
+                  </a>
+                {%- endif -%}
+
+                {%- if block.settings.secondary_button_label != blank -%}
+                  <a
+                    href="{{ block.settings.secondary_button_link | default: '#' }}"
+                    class="mallem-hero-slider__btn mallem-hero-slider__btn--outline"
+                  >
+                    {{- block.settings.secondary_button_label | escape -}}
+                  </a>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+
+          </div>
+        </div>
+
+      </li>
+    {%- endfor -%}
+  </ul>
+
+  {%- comment -%} Controls only render when there is more than one slide {%- endcomment -%}
+  {%- if slide_count > 1 -%}
+
+    {%- if section.settings.show_arrows -%}
+      <button
+        class="mallem-hero-slider__arrow mallem-hero-slider__arrow--prev"
+        aria-label="{{ 'mallem.hero_slider.previous_slide' | t }}"
+        data-prev
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+          <path d="M12 4l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <button
+        class="mallem-hero-slider__arrow mallem-hero-slider__arrow--next"
+        aria-label="{{ 'mallem.hero_slider.next_slide' | t }}"
+        data-next
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+          <path d="M8 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    {%- endif -%}
+
+    {%- if section.settings.show_dots or section.settings.autoplay -%}
+      <div class="mallem-hero-slider__controls">
+
+        {%- if section.settings.show_dots -%}
+          <div class="mallem-hero-slider__dots" role="tablist" aria-label="{{ 'sections.mallem_hero_slider.name' | t }}">
+            {%- for block in section.blocks -%}
+              <button
+                class="mallem-hero-slider__dot{% if forloop.first %} mallem-hero-slider__dot--active{% endif %}"
+                role="tab"
+                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+                aria-label="{{ 'mallem.hero_slider.go_to_slide' | t: number: forloop.index }}"
+                aria-controls="slide-{{ section.id }}-{{ forloop.index0 }}"
+                data-dot="{{ forloop.index0 }}"
+              ></button>
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+
+        {%- if section.settings.autoplay -%}
+          <button
+            class="mallem-hero-slider__pause"
+            data-pause-play
+            aria-pressed="false"
+            aria-label="{{ 'mallem.hero_slider.pause_slideshow' | t }}"
+            data-pause-label="{{ 'mallem.hero_slider.pause_slideshow' | t }}"
+            data-play-label="{{ 'mallem.hero_slider.play_slideshow' | t }}"
+          >
+            <svg class="mallem-hero-slider__pause-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="3" y="2" width="4" height="12" rx="1" fill="currentColor"/>
+              <rect x="9" y="2" width="4" height="12" rx="1" fill="currentColor"/>
+            </svg>
+            <svg class="mallem-hero-slider__play-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 2l10 6-10 6V2z" fill="currentColor"/>
+            </svg>
+          </button>
+        {%- endif -%}
+
+      </div>
+    {%- endif -%}
+
+  {%- endif -%}
+
+  {%- comment -%} Polite live region — screen readers announce slide changes without interrupting {%- endcomment -%}
+  <div class="visually-hidden" aria-live="polite" aria-atomic="true" data-slide-announce></div>
+
+</mallem-hero-slider>
+
+{{ 'mallem-hero-slider.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'mallem-hero-slider.js' | asset_url }}" defer="defer"></script>
+
+{% schema %}
+{
+  "name": "t:sections.mallem_hero_slider.name",
+  "tag": "section",
+  "class": "mallem-section-hero-slider",
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.mallem_hero_slider.settings.header_slideshow.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "t:sections.mallem_hero_slider.settings.autoplay.label",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "label": "t:sections.mallem_hero_slider.settings.autoplay_speed.label",
+      "min": 3,
+      "max": 8,
+      "step": 1,
+      "default": 5,
+      "unit": "s"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows",
+      "label": "t:sections.mallem_hero_slider.settings.show_arrows.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_dots",
+      "label": "t:sections.mallem_hero_slider.settings.show_dots.label",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "slide_height",
+      "label": "t:sections.mallem_hero_slider.settings.slide_height.label",
+      "options": [
+        { "value": "small",  "label": "t:sections.mallem_hero_slider.settings.slide_height.options.small" },
+        { "value": "medium", "label": "t:sections.mallem_hero_slider.settings.slide_height.options.medium" },
+        { "value": "large",  "label": "t:sections.mallem_hero_slider.settings.slide_height.options.large" },
+        { "value": "full",   "label": "t:sections.mallem_hero_slider.settings.slide_height.options.full" }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "t:sections.mallem_hero_slider.settings.full_width.label",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "mallem_slide",
+      "name": "t:sections.mallem_hero_slider.blocks.slide.name",
+      "settings": [
+        {
+          "type": "header",
+          "content": "t:sections.mallem_hero_slider.blocks.slide.settings.header_image.content"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.image.label"
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.mobile_image.label",
+          "info": "t:sections.mallem_hero_slider.blocks.slide.settings.mobile_image.info"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.overlay_opacity.label",
+          "min": 0,
+          "max": 80,
+          "step": 10,
+          "default": 30,
+          "unit": "%"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.mallem_hero_slider.blocks.slide.settings.header_content.content"
+        },
+        {
+          "type": "select",
+          "id": "text_position",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.label",
+          "options": [
+            { "value": "top_left",      "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.top_left" },
+            { "value": "top_center",    "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.top_center" },
+            { "value": "top_right",     "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.top_right" },
+            { "value": "middle_left",   "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.middle_left" },
+            { "value": "middle_center", "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.middle_center" },
+            { "value": "middle_right",  "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.middle_right" },
+            { "value": "bottom_left",   "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.bottom_left" },
+            { "value": "bottom_center", "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.bottom_center" },
+            { "value": "bottom_right",  "label": "t:sections.mallem_hero_slider.blocks.slide.settings.text_position.options.bottom_right" }
+          ],
+          "default": "middle_left"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.heading.label",
+          "default": "t:sections.mallem_hero_slider.blocks.slide.settings.heading.default"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.heading_size.label",
+          "options": [
+            { "value": "small",  "label": "t:sections.mallem_hero_slider.blocks.slide.settings.heading_size.options.small" },
+            { "value": "medium", "label": "t:sections.mallem_hero_slider.blocks.slide.settings.heading_size.options.medium" },
+            { "value": "large",  "label": "t:sections.mallem_hero_slider.blocks.slide.settings.heading_size.options.large" }
+          ],
+          "default": "medium"
+        },
+        {
+          "type": "textarea",
+          "id": "subheading",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.subheading.label",
+          "default": "t:sections.mallem_hero_slider.blocks.slide.settings.subheading.default"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.mallem_hero_slider.blocks.slide.settings.header_buttons.content"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.button_label.label",
+          "default": "t:sections.mallem_hero_slider.blocks.slide.settings.button_label.default"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.button_link.label"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.button_style.label",
+          "options": [
+            { "value": "primary", "label": "t:sections.mallem_hero_slider.blocks.slide.settings.button_style.options.primary" },
+            { "value": "outline", "label": "t:sections.mallem_hero_slider.blocks.slide.settings.button_style.options.outline" },
+            { "value": "white",   "label": "t:sections.mallem_hero_slider.blocks.slide.settings.button_style.options.white" }
+          ],
+          "default": "primary"
+        },
+        {
+          "type": "text",
+          "id": "secondary_button_label",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.secondary_button_label.label"
+        },
+        {
+          "type": "url",
+          "id": "secondary_button_link",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.secondary_button_link.label"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.mallem_hero_slider.blocks.slide.settings.header_trust.content"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_cod_badge",
+          "label": "t:sections.mallem_hero_slider.blocks.slide.settings.show_cod_badge.label",
+          "default": false
+        },
+        {
+          "type": "header",
+          "content": "t:sections.mallem_hero_slider.blocks.slide.settings.header_colors.content"
+        },
+        {
+          "type": "color_scheme",
+          "id": "color_scheme",
+          "label": "t:sections.all.color_scheme.label",
+          "default": "scheme-1"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.mallem_hero_slider.name",
+      "blocks": [
+        {
+          "type": "mallem_slide",
+          "settings": {
+            "heading": "Discover Premium Style",
+            "subheading": "Shop the latest collection with exclusive offers and fast delivery.",
+            "button_label": "Shop Now",
+            "text_position": "middle_left",
+            "show_cod_badge": true
+          }
+        },
+        {
+          "type": "mallem_slide",
+          "settings": {
+            "heading": "New Season Arrivals",
+            "subheading": "Fresh styles, unbeatable prices. Limited time offers.",
+            "button_label": "Explore Collection",
+            "text_position": "middle_center"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

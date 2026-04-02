@@ -1,0 +1,171 @@
+/*
+  Component: Free Shipping Progress Bar Styles
+  Purpose: Three-state visual progress bar driving cart conversion
+
+  States:
+    .mallem-shipping-bar--progress   0–79%   neutral / brand
+    .mallem-shipping-bar--almost     80–99%  warm amber (urgency)
+    .mallem-shipping-bar--achieved   100%    success green
+
+  RTL: All directional CSS uses logical properties exclusively.
+       Fill grows from inset-inline-start, so it naturally mirrors
+       left→right (LTR) and right→left (RTL) without extra overrides.
+
+  Performance:
+    --shipping-percent custom property drives inline-size to avoid
+    repeated layout recalc on JS updates.
+    will-change: inline-size isolates the animated layer.
+*/
+
+/* ============================================================
+   WRAPPER
+   ============================================================ */
+
+.mallem-shipping-bar {
+  padding-block: 0.625rem;
+  padding-inline: 1rem;
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.4;
+  border-block-end: 1px solid rgba(0 0 0 / 0.07);
+
+  /* WHY: Smooth color switch between states without jank */
+  transition: background-color 0.35s ease, color 0.35s ease;
+  contain: layout style;
+}
+
+/* ============================================================
+   INNER ROW (icon + message)
+   ============================================================ */
+
+.mallem-shipping-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-end: 0.5rem;
+}
+
+.mallem-shipping-bar__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  color: currentColor;
+}
+
+/* Truck shown by default; check hidden */
+.mallem-shipping-bar__svg--check {
+  display: none;
+}
+
+/* Achieved: swap icons */
+.mallem-shipping-bar--achieved .mallem-shipping-bar__svg--truck {
+  display: none;
+}
+.mallem-shipping-bar--achieved .mallem-shipping-bar__svg--check {
+  display: inline;
+}
+
+.mallem-shipping-bar__message {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ============================================================
+   PROGRESS TRACK & FILL
+   ============================================================ */
+
+.mallem-shipping-bar__track {
+  position: relative;
+  block-size: 4px;
+  border-radius: 99px;
+  overflow: hidden;
+  background-color: rgba(0 0 0 / 0.1);
+}
+
+.mallem-shipping-bar__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--shipping-percent, 0%);
+  border-radius: 99px;
+  background-color: currentColor;
+
+  /* WHY: Smooth visual feedback on cart updates */
+  transition: inline-size 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: inline-size;
+}
+
+/* ============================================================
+   STATE — PROGRESS (default)
+   Neutral dark colour; doesn't alarm, just informs.
+   ============================================================ */
+
+.mallem-shipping-bar--progress {
+  color: #1a1a1a;
+}
+
+/* ============================================================
+   STATE — ALMOST (≥ 80%)
+   Amber creates urgency without being aggressive.
+   ============================================================ */
+
+.mallem-shipping-bar--almost {
+  color: #b06000;
+  background-color: #fffbf2;
+}
+
+.mallem-shipping-bar--almost .mallem-shipping-bar__track {
+  background-color: rgba(176 96 0 / 0.12);
+}
+
+.mallem-shipping-bar--almost .mallem-shipping-bar__fill {
+  background-color: #f09000;
+}
+
+/* ============================================================
+   STATE — ACHIEVED (100%)
+   Green = reward. Reinforces the positive action.
+   ============================================================ */
+
+.mallem-shipping-bar--achieved {
+  color: #1a7a45;
+  background-color: #f0faf5;
+}
+
+.mallem-shipping-bar--achieved .mallem-shipping-bar__track {
+  background-color: rgba(26 122 69 / 0.12);
+}
+
+.mallem-shipping-bar--achieved .mallem-shipping-bar__fill {
+  background-color: #28a864;
+}
+
+/* ============================================================
+   ACHIEVED ICON ANIMATION
+   Subtle pop — confirms success without overwhelming.
+   ============================================================ */
+
+@keyframes mallem-shipping-icon-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.25); }
+  70%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+.mallem-shipping-bar--achieved .mallem-shipping-bar__icon {
+  animation: mallem-shipping-icon-pop 0.45s ease-out forwards;
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .mallem-shipping-bar,
+  .mallem-shipping-bar__fill {
+    transition: none;
+  }
+
+  .mallem-shipping-bar--achieved .mallem-shipping-bar__icon {
+    animation: none;
+  }
+}

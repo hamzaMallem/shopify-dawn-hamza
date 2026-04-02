@@ -1,0 +1,680 @@
+/*
+ * Component: Mallem Product Main
+ * Purpose:   Complete product detail page styles — gallery, info panel,
+ *            quantity stepper, stock states, accordion, sticky ATC bar.
+ *
+ * Architecture:
+ * - CSS custom properties for merchant-override-friendly theming
+ * - Mobile-first: single column → two-column grid at 990px
+ * - All layout via logical properties (RTL safe without extra code)
+ * - Zoom only fires on pointer: fine (mouse) — never on touch devices
+ * - Accordion uses native <details> — zero JS for expand/collapse
+ *
+ * Custom properties:
+ *   --mallem-product-gap          Space between gallery and info columns
+ *   --mallem-gallery-thumb-size   Square size of thumbnail buttons
+ *   --mallem-stock-low-color      Red — "Only N left"
+ *   --mallem-stock-medium-color   Orange — "Limited stock"
+ */
+
+/* ── Custom properties ──────────────────────────────────────────────────── */
+:root {
+  --mallem-product-gap:          3.2rem;
+  --mallem-gallery-thumb-size:   72px;
+  --mallem-stock-low-color:      #dc2626;
+  --mallem-stock-medium-color:   #ea580c;
+  --mallem-gallery-track-speed:  400ms;
+  --mallem-sticky-atc-height:    72px;
+}
+
+/* ── Screen-reader only utility ─────────────────────────────────────────── */
+.mallem-sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BREADCRUMB
+   ══════════════════════════════════════════════════════════════════════════ */
+.mallem-breadcrumb {
+  padding-block: 1.2rem;
+}
+
+.mallem-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 1.2rem;
+  color: rgba(var(--color-foreground), 0.6);
+}
+
+.mallem-breadcrumb__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mallem-breadcrumb__link:hover {
+  text-decoration: underline;
+}
+
+.mallem-breadcrumb__current {
+  color: rgba(var(--color-foreground), 0.9);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTION GRID  —  55fr gallery | 45fr info
+   ══════════════════════════════════════════════════════════════════════════ */
+.mallem-product-main {
+  container-type: inline-size;
+}
+
+.mallem-product-main__grid {
+  display: grid;
+  grid-template-columns: 1fr;   /* mobile: single column */
+  gap: var(--mallem-product-gap);
+}
+
+@media screen and (min-width: 990px) {
+  .mallem-product-main__grid {
+    grid-template-columns: 55fr 45fr;
+    align-items: start;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GALLERY
+   ══════════════════════════════════════════════════════════════════════════ */
+mallem-product-gallery.mallem-gallery {
+  display: grid;
+  gap: 1.2rem;
+}
+
+/* Desktop: thumbnail rail alongside main viewport */
+@media screen and (min-width: 750px) {
+  mallem-product-gallery.mallem-gallery--thumbs-left {
+    grid-template-columns: var(--mallem-gallery-thumb-size) 1fr;
+    grid-template-areas:
+      "thumbs viewport"
+      ".       dots";
+  }
+
+  mallem-product-gallery.mallem-gallery--thumbs-bottom {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "viewport"
+      "thumbs"
+      "dots";
+  }
+
+  mallem-product-gallery.mallem-gallery--thumbs-hidden {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "viewport"
+      "dots";
+  }
+}
+
+/* Mobile: no thumbnail rail */
+@media screen and (max-width: 749px) {
+  mallem-product-gallery.mallem-gallery {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "viewport"
+      "dots";
+  }
+}
+
+/* ── Gallery viewport ──────────────────────────────────────────────────── */
+.mallem-gallery__viewport {
+  grid-area: viewport;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--media-radius, 0.8rem);
+  contain: layout;
+}
+
+/* ── Aspect ratio variants ─────────────────────────────────────────────── */
+.mallem-gallery--square    .mallem-gallery__viewport { aspect-ratio: 1 / 1; }
+.mallem-gallery--portrait  .mallem-gallery__viewport { aspect-ratio: 3 / 4; }
+.mallem-gallery--landscape .mallem-gallery__viewport { aspect-ratio: 4 / 3; }
+
+/* ── Slide track — JS translates this element ──────────────────────────── */
+.mallem-gallery__track {
+  display: flex;
+  flex-direction: row;
+  block-size: 100%;
+  transition: transform var(--mallem-gallery-track-speed) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+
+/* ── Individual slide ──────────────────────────────────────────────────── */
+.mallem-gallery__slide {
+  flex: 0 0 100%;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+}
+
+.mallem-gallery__img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* ── Zoom — pointer: fine only (mouse) — disabled on touch ─────────────── */
+@media (hover: hover) and (pointer: fine) {
+  .mallem-gallery__slide--zoomable {
+    overflow: hidden;
+  }
+
+  .mallem-gallery__slide--zoomable .mallem-gallery__img {
+    transition: transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+  }
+
+  .mallem-gallery__slide--zoomable:hover .mallem-gallery__img {
+    transform: scale(1.08);
+  }
+}
+
+/* ── Prev / Next arrows ────────────────────────────────────────────────── */
+.mallem-gallery__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--color-foreground), 0.15);
+  background: rgba(var(--color-background), 0.9);
+  color: rgb(var(--color-foreground));
+  cursor: pointer;
+  z-index: 2;
+  transition: background 200ms, opacity 200ms;
+}
+
+.mallem-gallery__arrow--prev { inset-inline-start: 1rem; }
+.mallem-gallery__arrow--next { inset-inline-end: 1rem; }
+
+.mallem-gallery__arrow:hover {
+  background: rgb(var(--color-background));
+}
+
+/* Hide arrows when single slide */
+.mallem-gallery__arrow:only-of-type {
+  display: none;
+}
+
+/* ── Thumbnail rail ────────────────────────────────────────────────────── */
+.mallem-gallery__thumbs {
+  grid-area: thumbs;
+}
+
+@media screen and (max-width: 749px) {
+  .mallem-gallery__thumbs { display: none; }
+}
+
+.mallem-gallery__thumbs--left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  overflow-y: auto;
+  max-block-size: 100%;
+  scrollbar-width: thin;
+}
+
+.mallem-gallery__thumbs--bottom {
+  display: flex;
+  flex-direction: row;
+  gap: 0.8rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.mallem-gallery__thumb {
+  flex: 0 0 var(--mallem-gallery-thumb-size);
+  inline-size: var(--mallem-gallery-thumb-size);
+  block-size: var(--mallem-gallery-thumb-size);
+  border: 2px solid transparent;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  transition: border-color 200ms;
+}
+
+.mallem-gallery__thumb-img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* Active thumbnail: outline over border so it doesn't shift layout */
+.mallem-gallery__thumb--active,
+.mallem-gallery__thumb[aria-selected="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ── Mobile dot indicators ─────────────────────────────────────────────── */
+.mallem-gallery__dots {
+  grid-area: dots;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.8rem;
+}
+
+@media screen and (min-width: 750px) {
+  .mallem-gallery__dots { display: none; }
+}
+
+.mallem-gallery__dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(var(--color-foreground), 0.25);
+  cursor: pointer;
+  transition: inline-size 250ms ease, background 200ms;
+}
+
+.mallem-gallery__dot--active,
+.mallem-gallery__dot[aria-selected="true"] {
+  inline-size: 24px;                            /* pill shape for active */
+  border-radius: 4px;
+  background: rgb(var(--color-foreground));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRODUCT INFO PANEL
+   ══════════════════════════════════════════════════════════════════════════ */
+.mallem-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+/* Vendor */
+.mallem-product-info__vendor {
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--color-foreground), 0.6);
+  margin: 0;
+}
+
+.mallem-product-info__vendor-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mallem-product-info__vendor-link:hover { text-decoration: underline; }
+
+/* Title */
+.mallem-product-info__title {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* Rating placeholder (external app fills this) */
+.mallem-product-info__rating {
+  min-block-size: 2rem;
+}
+
+/* ── Price block ───────────────────────────────────────────────────────── */
+.mallem-product-info__price {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.mallem-product-info__price-current {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: rgb(var(--color-foreground));
+}
+
+.mallem-product-info__price-current--sale {
+  color: var(--mallem-stock-low-color);
+}
+
+.mallem-product-info__price-compare {
+  font-size: 1.6rem;
+  color: rgba(var(--color-foreground), 0.5);
+  text-decoration: line-through;
+}
+
+.mallem-product-info__price-badge {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.3rem;
+}
+
+.mallem-badge--sale {
+  background: var(--mallem-stock-low-color);
+  color: #fff;
+}
+
+/* ── Form ──────────────────────────────────────────────────────────────── */
+.mallem-product-info__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+/* ── Quantity stepper ──────────────────────────────────────────────────── */
+.mallem-product-info__qty {
+  display: flex;
+  align-items: center;
+  inline-size: fit-content;
+  border: 1px solid rgba(var(--color-foreground), 0.2);
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+.mallem-product-info__qty-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 44px;  /* WCAG 2.5.5 touch target */
+  min-block-size: 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: rgb(var(--color-foreground));
+  transition: background 150ms;
+}
+
+.mallem-product-info__qty-btn:hover {
+  background: rgba(var(--color-foreground), 0.06);
+}
+
+.mallem-product-info__qty-input {
+  inline-size: 5rem;
+  text-align: center;
+  border: none;
+  border-inline: 1px solid rgba(var(--color-foreground), 0.2);
+  min-block-size: 44px;
+  font-size: 1.4rem;
+  font-weight: 600;
+  background: transparent;
+  color: rgb(var(--color-foreground));
+  -moz-appearance: textfield;
+}
+
+.mallem-product-info__qty-input::-webkit-inner-spin-button,
+.mallem-product-info__qty-input::-webkit-outer-spin-button { display: none; }
+
+/* ── ATC button ────────────────────────────────────────────────────────── */
+.mallem-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  border: none;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: 600;
+  transition: opacity 200ms, transform 150ms;
+  text-decoration: none;
+}
+
+.mallem-btn--primary {
+  background: rgb(var(--color-button));
+  color: rgb(var(--color-button-text));
+  min-block-size: 52px;
+  padding-inline: 2.4rem;
+}
+
+.mallem-btn--primary:hover { opacity: 0.88; }
+
+.mallem-product-info__atc {
+  inline-size: 100%;
+}
+
+/* Loading state — JS adds .mallem-btn--loading */
+.mallem-btn__spinner {
+  display: none;
+  inline-size: 18px;
+  block-size: 18px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-block-start-color: #fff;
+  border-radius: 50%;
+  animation: mallem-spin 0.65s linear infinite;
+}
+
+.mallem-btn--loading .mallem-btn__spinner { display: block; }
+.mallem-btn--loading [data-mallem-atc-text] { opacity: 0.7; }
+
+@keyframes mallem-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Disabled */
+.mallem-btn[disabled],
+.mallem-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Form error ─────────────────────────────────────────────────────────── */
+.mallem-product-info__form-error {
+  padding: 1rem 1.2rem;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 0.6rem;
+  color: var(--mallem-stock-low-color);
+  font-size: 1.4rem;
+}
+
+/* ── Shipping line ─────────────────────────────────────────────────────── */
+.mallem-product-info__shipping-line {
+  font-size: 1.3rem;
+  color: rgba(var(--color-foreground), 0.7);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mallem-product-info__shipping-line::before {
+  content: "✓";
+  color: #16a34a;
+  font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STOCK DISPLAY
+   ══════════════════════════════════════════════════════════════════════════ */
+.mallem-stock {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 500;
+}
+
+/* Hidden when no urgency signal needed */
+.mallem-stock[hidden] { display: none; }
+
+.mallem-stock__dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Low: red */
+.mallem-stock--low .mallem-stock__dot  { background: var(--mallem-stock-low-color); }
+.mallem-stock--low .mallem-stock__text { color: var(--mallem-stock-low-color); }
+
+/* Medium: orange */
+.mallem-stock--medium .mallem-stock__dot  { background: var(--mallem-stock-medium-color); }
+.mallem-stock--medium .mallem-stock__text { color: var(--mallem-stock-medium-color); }
+
+/* Out of stock: muted */
+.mallem-stock--out .mallem-stock__dot  { background: rgba(var(--color-foreground), 0.3); }
+.mallem-stock--out .mallem-stock__text { color: rgba(var(--color-foreground), 0.5); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ACCORDION
+   ══════════════════════════════════════════════════════════════════════════ */
+.mallem-accordion {
+  display: flex;
+  flex-direction: column;
+  border-block-start: 1px solid rgba(var(--color-foreground), 0.1);
+}
+
+.mallem-accordion__item {
+  border-block-end: 1px solid rgba(var(--color-foreground), 0.1);
+}
+
+/* Remove default marker — we use SVG chevron */
+.mallem-accordion__summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1.4rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mallem-accordion__summary::-webkit-details-marker { display: none; }
+
+.mallem-accordion__title {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.mallem-accordion__chevron {
+  flex-shrink: 0;
+  transition: transform 250ms ease;
+  display: flex;
+}
+
+/* Rotate chevron when open */
+.mallem-accordion__item[open] .mallem-accordion__chevron {
+  transform: rotate(180deg);
+}
+
+.mallem-accordion__body {
+  padding-block-end: 1.6rem;
+}
+
+.mallem-accordion__content {
+  font-size: 1.4rem;
+  line-height: 1.6;
+  color: rgba(var(--color-foreground), 0.8);
+}
+
+/* Rich text (rte) resets */
+.mallem-rte p:first-child { margin-block-start: 0; }
+.mallem-rte p:last-child  { margin-block-end: 0; }
+.mallem-rte img           { max-inline-size: 100%; block-size: auto; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STICKY ATC BAR
+   ══════════════════════════════════════════════════════════════════════════ */
+mallem-sticky-atc.mallem-sticky-atc {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 200;
+  background: rgb(var(--color-background));
+  border-block-start: 1px solid rgba(var(--color-foreground), 0.1);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+  /* Safe-area for iPhone home indicator */
+  padding-block-end: env(safe-area-inset-bottom, 0);
+  /* Hidden by default — JS removes translateY on show() */
+  transform: translateY(100%);
+  transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+
+mallem-sticky-atc.mallem-sticky-atc[aria-hidden="false"] {
+  transform: translateY(0);
+}
+
+.mallem-sticky-atc__inner {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1rem 1.6rem;
+  max-inline-size: var(--page-width, 1200px);
+  margin-inline: auto;
+}
+
+.mallem-sticky-atc__thumb {
+  flex-shrink: 0;
+}
+
+.mallem-sticky-atc__thumb-img {
+  display: block;
+  inline-size: 48px;
+  block-size: 48px;
+  object-fit: cover;
+  border-radius: 0.4rem;
+}
+
+.mallem-sticky-atc__meta {
+  flex: 1;
+  min-inline-size: 0;  /* allow text truncation */
+}
+
+.mallem-sticky-atc__title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.mallem-sticky-atc__variant {
+  font-size: 1.2rem;
+  color: rgba(var(--color-foreground), 0.6);
+  margin: 0.2rem 0 0;
+}
+
+.mallem-sticky-atc__price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mallem-sticky-atc__btn {
+  flex-shrink: 0;
+  min-block-size: 44px;
+  padding-inline: 1.6rem;
+  font-size: 1.3rem;
+}

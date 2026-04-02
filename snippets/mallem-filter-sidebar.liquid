@@ -1,0 +1,182 @@
+{%- comment -%}
+  Component: Filter Sidebar
+  Purpose: Desktop sticky sidebar rendering Shopify native collection filters
+  Used in: sections/mallem-collection.liquid
+
+  Parameters:
+    filters  {Array}  collection.filters object
+
+  Features:
+  - Collapsible filter groups via <details>/<summary> (no JS required to open/close)
+  - Filter types: list (checkboxes), price_range (dual number inputs), boolean (single checkbox)
+  - Active filter values pre-checked from URL params
+  - Disabled state for zero-count non-active values
+  - Progressive enhancement: form POST works without JS; JS intercepts for AJAX
+
+  RTL: Logical properties only; checkbox/label order natural in both directions
+  Performance: No JS in snippet; all behavior delegated to mallem-filters.js
+{%- endcomment -%}
+
+{%- liquid
+  assign has_active = false
+  for filter in filters
+    if filter.active_values.size > 0
+      assign has_active = true
+    endif
+    if filter.type == 'price_range'
+      if filter.min_value.value or filter.max_value.value
+        assign has_active = true
+      endif
+    endif
+  endfor
+-%}
+
+<form
+  id="mallem-filter-form"
+  class="mallem-filter-sidebar"
+  data-mallem-filter-form
+>
+
+  <div class="mallem-filter-sidebar__header">
+    <h2 class="mallem-filter-sidebar__title">{{ 'mallem.collection.filters_title' | t }}</h2>
+    <a
+      href="{{ collection.url }}"
+      class="mallem-filter-sidebar__clear-all{% unless has_active %} mallem-filter-sidebar__clear-all--hidden{% endunless %}"
+      data-mallem-clear-filters
+    >{{ 'mallem.collection.clear_all' | t }}</a>
+  </div>
+
+  {%- for filter in filters -%}
+    <details
+      class="mallem-filter-group"
+      data-mallem-filter-group
+      open
+    >
+      <summary class="mallem-filter-group__header">
+        <span class="mallem-filter-group__label">{{ filter.label | escape }}</span>
+        {%- if filter.active_values.size > 0 -%}
+          <span class="mallem-filter-group__count" aria-label="{{ filter.active_values.size }} {{ 'mallem.collection.active_filters_label' | t }}">
+            {{ filter.active_values.size }}
+          </span>
+        {%- endif -%}
+        <span class="mallem-filter-group__chevron" aria-hidden="true"></span>
+      </summary>
+
+      <div class="mallem-filter-group__body">
+
+        {%- case filter.type -%}
+
+          {%- when 'list' -%}
+            <ul class="mallem-filter-list" role="list">
+              {%- for value in filter.values -%}
+                <li class="mallem-filter-list__item">
+                  <label
+                    class="mallem-filter-checkbox"
+                    for="Filter-{{ filter.param_name | escape }}-{{ forloop.index }}"
+                  >
+                    <input
+                      type="checkbox"
+                      class="mallem-filter-checkbox__input"
+                      id="Filter-{{ filter.param_name | escape }}-{{ forloop.index }}"
+                      name="{{ filter.param_name | escape }}"
+                      value="{{ value.value | escape }}"
+                      data-mallem-filter-input
+                      {% if value.active %}checked{% endif %}
+                      {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                    >
+                    <span class="mallem-filter-checkbox__box" aria-hidden="true"></span>
+                    <span class="mallem-filter-checkbox__label">
+                      {{ value.label | escape }}
+                      <span class="mallem-filter-checkbox__count">({{ value.count }})</span>
+                    </span>
+                  </label>
+                </li>
+              {%- endfor -%}
+            </ul>
+
+          {%- when 'price_range' -%}
+            <div class="mallem-filter-price" data-mallem-price-filter>
+              <div class="mallem-filter-price__inputs">
+
+                <div class="mallem-filter-price__field">
+                  <label
+                    for="Filter-{{ filter.param_name | escape }}-GTE"
+                    class="mallem-filter-price__label"
+                  >{{ 'mallem.collection.price_from' | t }}</label>
+                  <div class="mallem-filter-price__input-wrapper">
+                    <span class="mallem-filter-price__currency" aria-hidden="true">
+                      {{- cart.currency.symbol -}}
+                    </span>
+                    <input
+                      type="number"
+                      id="Filter-{{ filter.param_name | escape }}-GTE"
+                      name="{{ filter.min_value.param_name }}"
+                      class="mallem-filter-price__input"
+                      data-mallem-price-min
+                      data-mallem-filter-input
+                      {%- if filter.min_value.value -%}
+                        value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}"
+                      {%- endif -%}
+                      placeholder="{{ filter.range_min | money_without_currency | replace: ',', '' }}"
+                      min="{{ filter.range_min | money_without_currency | replace: ',', '' }}"
+                      max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                    >
+                  </div>
+                </div>
+
+                <span class="mallem-filter-price__separator" aria-hidden="true">—</span>
+
+                <div class="mallem-filter-price__field">
+                  <label
+                    for="Filter-{{ filter.param_name | escape }}-LTE"
+                    class="mallem-filter-price__label"
+                  >{{ 'mallem.collection.price_to' | t }}</label>
+                  <div class="mallem-filter-price__input-wrapper">
+                    <span class="mallem-filter-price__currency" aria-hidden="true">
+                      {{- cart.currency.symbol -}}
+                    </span>
+                    <input
+                      type="number"
+                      id="Filter-{{ filter.param_name | escape }}-LTE"
+                      name="{{ filter.max_value.param_name }}"
+                      class="mallem-filter-price__input"
+                      data-mallem-price-max
+                      data-mallem-filter-input
+                      {%- if filter.max_value.value -%}
+                        value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}"
+                      {%- endif -%}
+                      placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                      min="{{ filter.range_min | money_without_currency | replace: ',', '' }}"
+                      max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                    >
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          {%- when 'boolean' -%}
+            <label
+              class="mallem-filter-checkbox"
+              for="Filter-{{ filter.param_name | escape }}"
+            >
+              <input
+                type="checkbox"
+                class="mallem-filter-checkbox__input"
+                id="Filter-{{ filter.param_name | escape }}"
+                name="{{ filter.param_name | escape }}"
+                value="1"
+                data-mallem-filter-input
+                {% if filter.active_values.size > 0 %}checked{% endif %}
+              >
+              <span class="mallem-filter-checkbox__box" aria-hidden="true"></span>
+              <span class="mallem-filter-checkbox__label">{{ filter.label | escape }}</span>
+            </label>
+
+        {%- endcase -%}
+
+      </div>
+    </details>
+  {%- endfor -%}
+
+</form>

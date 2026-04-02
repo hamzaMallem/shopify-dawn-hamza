@@ -1471,36 +1471,52 @@
     "settings": [
       {
         "type": "paragraph",
-        "content": "Control text direction (RTL/LTR) for your store. The theme automatically detects RTL languages (Arabic, Hebrew, Farsi, Urdu), but you can override this setting manually."
+        "content": "Enable RTL (Right-to-Left) layout for Arabic and other RTL languages. When enabled, the entire theme layout will flip to support RTL text direction."
       },
       {
-        "type": "select",
-        "id": "mallem_rtl_direction",
-        "label": "Text direction",
-        "info": "Choose 'Auto' to detect direction from language, or manually set RTL (right-to-left) or LTR (left-to-right).",
-        "options": [
-          {
-            "value": "auto",
-            "label": "Auto-detect from language"
-          },
-          {
-            "value": "rtl",
-            "label": "Force RTL (Arabic, Hebrew, Farsi, Urdu)"
-          },
-          {
-            "value": "ltr",
-            "label": "Force LTR (English, French, Spanish, etc.)"
-          }
-        ],
-        "default": "auto"
+        "type": "checkbox",
+        "id": "mallem_enable_rtl",
+        "label": "Enable RTL Layout",
+        "info": "Activate RTL mode for Arabic, Hebrew, Farsi, and other right-to-left languages. This will flip navigation, product cards, and all UI elements.",
+        "default": false
       },
       {
         "type": "header",
-        "content": "RTL Language Support"
+        "content": "RTL Information"
       },
       {
         "type": "paragraph",
-        "content": "The following languages are automatically detected as RTL: Arabic (ar), Hebrew (he), Farsi/Persian (fa), and Urdu (ur). The theme will automatically flip layouts, navigation, and text alignment for these languages."
+        "content": "When RTL is enabled, the theme will use CSS logical properties to automatically flip layouts. All spacing, navigation, and text alignment will adapt to right-to-left reading direction. Optimized for Arabic markets (Morocco, Egypt, Saudi Arabia, UAE) and MENA region."
+      }
+    ]
+  },
+  {
+    "name": "Mallem Free Shipping Bar",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Free Shipping Progress Bar"
+      },
+      {
+        "type": "paragraph",
+        "content": "Show a progress bar in the cart drawer that motivates customers to add more items to unlock free shipping. Updates instantly as items are added or removed."
+      },
+      {
+        "type": "checkbox",
+        "id": "mallem_free_shipping_enabled",
+        "label": "Enable free shipping bar",
+        "info": "Displays the progress bar in the cart drawer",
+        "default": true
+      },
+      {
+        "type": "range",
+        "id": "mallem_free_shipping_threshold",
+        "min": 10,
+        "max": 2000,
+        "step": 10,
+        "label": "Free shipping threshold",
+        "info": "Enter the amount in your store currency (e.g. 50 for $50, 500 for 500 MAD). Orders at or above this amount qualify for free shipping.",
+        "default": 50
       }
     ]
   }

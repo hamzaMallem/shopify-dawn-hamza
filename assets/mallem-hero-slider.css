@@ -1,0 +1,402 @@
+/* ============================================================================
+   Component: mallem-hero-slider
+   Purpose:   Hero slider styles — layout, animation, text positioning
+   Used in:   sections/mallem-hero-slider.liquid
+
+   Features:
+   - CSS translateX slide mechanism (GPU composited, zero reflow)
+   - 3×3 CSS Grid text positioning (9 merchant-selectable positions)
+   - RTL auto-correct via logical properties throughout
+   - Mobile/desktop image swap at 749px
+   - Reduced motion: all transitions cut to 0ms
+
+   RTL:         100% CSS logical properties — zero directional overrides needed
+   Performance: will-change applied only during animation, contain on root,
+                transitions only on transform and opacity (GPU composited)
+   ============================================================================ */
+
+/* ─── Root ──────────────────────────────────────────────────────────────────── */
+
+.mallem-hero-slider {
+  position: relative;
+  overflow: hidden;
+  /* WHY contain: browser skips layout/style recalc outside this box —
+     critical for a large above-the-fold element */
+  contain: layout style;
+}
+
+.mallem-hero-slider--full-width {
+  /* WHY negative margin: breaks out of page padding added by theme wrappers
+     without requiring changes to the parent layout */
+  margin-inline: calc(-1 * var(--page-margin, 0px));
+}
+
+/* ─── Track ─────────────────────────────────────────────────────────────────── */
+
+.mallem-hero-slider__track {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* WHY only transform: GPU composited property — no layout recalc on every frame */
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mallem-hero-slider__track--animating {
+  /* Added by JS before animation, removed on transitionend to free GPU memory */
+  will-change: transform;
+}
+
+/* ─── Slides ─────────────────────────────────────────────────────────────────── */
+
+.mallem-hero-slider__slide {
+  flex-shrink: 0;
+  /* Each slide takes exactly the visible slider width —
+     track total width = slideCount × 100% */
+  inline-size: 100%;
+  block-size: var(--slide-height, 65vh);
+  position: relative;
+}
+
+/* ─── Media (Background Images) ─────────────────────────────────────────────── */
+
+.mallem-hero-slider__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.mallem-hero-slider__img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* Mobile image hidden by default — shown at < 750px if merchant uploaded one */
+.mallem-hero-slider__img--mobile {
+  display: none;
+}
+
+.mallem-hero-slider__placeholder,
+.mallem-hero-slider__placeholder-svg {
+  inline-size: 100%;
+  block-size: 100%;
+  display: block;
+}
+
+/* ─── Overlay ────────────────────────────────────────────────────────────────── */
+
+/* WHY ::before pseudo: zero DOM nodes, browser composites cheaply */
+.mallem-hero-slider__slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* WHY bottom-heavy gradient: text at bottom/middle reads clearly while
+     the top of the image remains visually unobstructed */
+  background: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / calc(var(--slide-overlay, 0.3) * 0.4)) 0%,
+    rgb(0 0 0 / calc(var(--slide-overlay, 0.3) * 0.1)) 35%,
+    rgb(0 0 0 / calc(var(--slide-overlay, 0.3) * 0.9)) 100%
+  );
+  transition: opacity 0.3s ease;
+}
+
+/* ─── Content Grid ───────────────────────────────────────────────────────────── */
+
+/* WHY 3×3 CSS Grid: maps exactly to 9 merchant-selectable positions with
+   zero percentage calculations. RTL reverses column order automatically
+   because CSS Grid respects writing-mode from the cascade. */
+.mallem-hero-slider__content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  padding: clamp(1rem, 4vw, 3rem);
+  gap: 0;
+}
+
+/* ── 9 Position Modifiers ────────────────────────────────────────────────────── */
+
+/* top row */
+.mallem-hero-slider__content--top_left    .mallem-hero-slider__content-inner { grid-column: 1; grid-row: 1; align-self: start; justify-self: start; }
+.mallem-hero-slider__content--top_center  .mallem-hero-slider__content-inner { grid-column: 2; grid-row: 1; align-self: start; justify-self: center; text-align: center; }
+.mallem-hero-slider__content--top_right   .mallem-hero-slider__content-inner { grid-column: 3; grid-row: 1; align-self: start; justify-self: end; text-align: end; }
+
+/* middle row */
+.mallem-hero-slider__content--middle_left   .mallem-hero-slider__content-inner { grid-column: 1; grid-row: 2; align-self: center; justify-self: start; }
+.mallem-hero-slider__content--middle_center .mallem-hero-slider__content-inner { grid-column: 2; grid-row: 2; align-self: center; justify-self: center; text-align: center; }
+.mallem-hero-slider__content--middle_right  .mallem-hero-slider__content-inner { grid-column: 3; grid-row: 2; align-self: center; justify-self: end; text-align: end; }
+
+/* bottom row */
+.mallem-hero-slider__content--bottom_left   .mallem-hero-slider__content-inner { grid-column: 1; grid-row: 3; align-self: end; justify-self: start; }
+.mallem-hero-slider__content--bottom_center .mallem-hero-slider__content-inner { grid-column: 2; grid-row: 3; align-self: end; justify-self: center; text-align: center; }
+.mallem-hero-slider__content--bottom_right  .mallem-hero-slider__content-inner { grid-column: 3; grid-row: 3; align-self: end; justify-self: end; text-align: end; }
+
+.mallem-hero-slider__content-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* WHY 56ch: optimal line length for readability, auto-scales with font size */
+  max-inline-size: 56ch;
+}
+
+/* ─── Typography ─────────────────────────────────────────────────────────────── */
+
+.mallem-hero-slider__heading {
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  /* WHY text-shadow: ensures legibility over any image without darkening the whole
+     overlay — cheaper than a heavier gradient and works on bright images */
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+}
+
+.mallem-hero-slider__heading--small  { font-size: clamp(1.5rem,  3vw, 2.25rem); }
+.mallem-hero-slider__heading--medium { font-size: clamp(2rem,    4vw, 3.25rem); }
+.mallem-hero-slider__heading--large  { font-size: clamp(2.5rem,  5vw, 4.5rem); }
+
+.mallem-hero-slider__subheading {
+  color: rgb(255 255 255 / 0.9);
+  font-size: clamp(0.875rem, 1.5vw, 1.125rem);
+  line-height: 1.65;
+  margin: 0;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────────────── */
+
+.mallem-hero-slider__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.mallem-hero-slider__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0.75rem;
+  padding-inline: 1.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  /* WHY only opacity + transform: GPU composited — no color recalc on hover */
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.mallem-hero-slider__btn:hover,
+.mallem-hero-slider__btn:focus-visible {
+  opacity: 0.88;
+  transform: translateY(-2px);
+}
+
+.mallem-hero-slider__btn:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.mallem-hero-slider__btn--primary {
+  background-color: var(--color-button, #1a1a1a);
+  color: var(--color-button-text, #fff);
+}
+
+.mallem-hero-slider__btn--outline {
+  background-color: transparent;
+  border-color: #fff;
+  color: #fff;
+}
+
+.mallem-hero-slider__btn--white {
+  background-color: #fff;
+  color: #000;
+}
+
+/* ─── Arrows ─────────────────────────────────────────────────────────────────── */
+
+.mallem-hero-slider__arrow {
+  position: absolute;
+  /* WHY top 50% + translateY: vertical center without JS height reads */
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 44×44 minimum tap target — WCAG 2.5.5 */
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  background-color: rgb(255 255 255 / 0.18);
+  border: 1px solid rgb(255 255 255 / 0.3);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background-color 0.2s ease;
+}
+
+.mallem-hero-slider__arrow:hover,
+.mallem-hero-slider__arrow:focus-visible {
+  background-color: rgb(255 255 255 / 0.35);
+}
+
+.mallem-hero-slider__arrow:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* WHY logical properties: inset-inline-start auto-flips to physical right in RTL —
+   prev arrow correctly appears on the reading-start side with zero overrides */
+.mallem-hero-slider__arrow--prev {
+  inset-inline-start: 1rem;
+}
+
+.mallem-hero-slider__arrow--next {
+  inset-inline-end: 1rem;
+}
+
+/* ─── Controls Bar (Dots + Pause) ────────────────────────────────────────────── */
+
+.mallem-hero-slider__controls {
+  position: absolute;
+  inset-block-end: 1.25rem;
+  inset-inline: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* ─── Dots ───────────────────────────────────────────────────────────────────── */
+
+.mallem-hero-slider__dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mallem-hero-slider__dot {
+  /* WHY inline-size transition: pill animation is GPU-composited and signals
+     "active position" clearly without adding text that clutters the slide */
+  display: block;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 100vmax;
+  background-color: rgb(255 255 255 / 0.5);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: inline-size 0.3s ease, background-color 0.3s ease;
+}
+
+.mallem-hero-slider__dot--active,
+.mallem-hero-slider__dot[aria-selected="true"] {
+  inline-size: 24px;
+  background-color: #fff;
+}
+
+.mallem-hero-slider__dot:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* ─── Pause/Play Toggle ──────────────────────────────────────────────────────── */
+
+.mallem-hero-slider__pause {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 50%;
+  background-color: rgb(255 255 255 / 0.18);
+  border: 1px solid rgb(255 255 255 / 0.3);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background-color 0.2s ease;
+}
+
+.mallem-hero-slider__pause:hover,
+.mallem-hero-slider__pause:focus-visible {
+  background-color: rgb(255 255 255 / 0.35);
+}
+
+.mallem-hero-slider__pause:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Icon toggling driven by state class on root — avoids JS touching inline styles */
+.mallem-hero-slider__play-icon {
+  display: none;
+}
+
+.mallem-hero-slider--paused .mallem-hero-slider__pause-icon {
+  display: none;
+}
+
+.mallem-hero-slider--paused .mallem-hero-slider__play-icon {
+  display: block;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 749px) {
+  /* Swap to mobile image when provided */
+  .mallem-hero-slider__img--desktop {
+    display: none;
+  }
+
+  .mallem-hero-slider__img--mobile {
+    display: block;
+  }
+
+  /* Show mobile placeholder when no mobile image exists */
+  .mallem-hero-slider__placeholder--desktop {
+    display: block;
+  }
+
+  .mallem-hero-slider__content {
+    padding: 1rem;
+  }
+
+  /* On small screens all position modifiers collapse to a single column —
+     avoids tiny content boxes when grid has 3 columns on a 375px screen */
+  .mallem-hero-slider__content-inner {
+    grid-column: 1 / -1 !important;
+    max-inline-size: 100%;
+  }
+
+  .mallem-hero-slider__arrow {
+    inline-size: 36px;
+    block-size: 36px;
+  }
+}
+
+/* ─── Reduced Motion ─────────────────────────────────────────────────────────── */
+
+/* WHY 0ms not "none": preserves JS class-toggle state changes while
+   removing the visual animation — animation events still fire correctly */
+@media (prefers-reduced-motion: reduce) {
+  .mallem-hero-slider__track,
+  .mallem-hero-slider__dot,
+  .mallem-hero-slider__btn,
+  .mallem-hero-slider__arrow,
+  .mallem-hero-slider__pause,
+  .mallem-hero-slider__slide::before {
+    transition-duration: 0ms;
+  }
+}

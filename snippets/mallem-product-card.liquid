@@ -1,266 +1,389 @@
 {%- comment -%}
-  ============================================================================
-  MALLEM PRODUCT CARD
-  ============================================================================
+  Component: mallem-product-card
+  Purpose: Premium reusable product card for collections, search, recommendations
+  Used in: Collection grids, featured products, search results, related products
 
-  Premium reusable product card component for collections, search, recommendations.
-  Built for conversion, performance, and merchant flexibility.
+  Features:
+  - Add to cart button with AJAX support
+  - Responsive images with hover effect
+  - Badge system (sale, sold out, custom metafields, featured)
+  - Price display with discount calculation
+  - Quick view and wishlist buttons
+  - Variant swatches (color/label) with live image + ATC button sync
+  - RTL-ready with CSS logical properties
+  - Mobile-first design optimized for MENA markets
 
-  PARAMETERS:
-  - product {Object} Required. Shopify product object
-  - show_vendor {Boolean} Display vendor name. Default: false
-  - show_cod {Boolean} Display COD badge. Default: false
-  - show_quick_view {Boolean} Show quick view button. Default: false
-  - show_wishlist {Boolean} Show wishlist button. Default: false
-  - show_swatches {Boolean} Show variant color swatches. Default: false
-  - show_secondary_image {Boolean} Show second image on hover. Default: true
-  - image_ratio {String} Image aspect ratio: 'portrait', 'square', 'landscape'. Default: 'portrait'
-  - lazy_load {Boolean} Enable lazy loading. Default: true
-  - card_class {String} Additional CSS classes for card wrapper. Default: ''
+  Parameters:
+  - product {Object} Required - Shopify product object
+  - show_vendor {Boolean} Optional - Display product vendor (default: false)
+  - show_quick_view {Boolean} Optional - Show quick view button (default: settings.mallem_enable_quick_view)
+  - show_wishlist {Boolean} Optional - Show wishlist button (default: settings.mallem_enable_wishlist)
+  - image_ratio {String} Optional - Image aspect ratio: square, portrait, landscape (default: settings.mallem_product_image_ratio)
+  - lazy_load {Boolean} Optional - Enable lazy loading (default: true)
+  - show_badges {Boolean} Optional - Display product badges (default: true)
+  - enable_hover_image {Boolean} Optional - Show second image on hover (default: true)
+  - show_swatches {Boolean} Optional - Display variant swatches below title (default: true)
+  - swatch_option {String} Optional - Which option to render swatches for (default: first option)
 
-  USAGE:
-  {% render 'mallem-product-card',
-     product: product,
-     show_vendor: true,
-     show_cod: true,
-     show_quick_view: true
-  %}
-
-  ARCHITECTURE:
-  - Snippet-first (reusable across sections)
-  - RTL-ready (CSS logical properties)
-  - Mobile-first (large tap targets, touch-optimized)
-  - Performance-optimized (lazy loading, no required JS)
-  - Accessible (semantic HTML, ARIA labels)
-
+  RTL: Fully RTL-compatible via CSS logical properties
+  Performance: Lazy loading, explicit dimensions, lightweight animations, deferred JS
 {%- endcomment -%}
 
 {%- liquid
-  # Set default parameter values
+  comment
+    WHY defaults: Provide sensible fallbacks while allowing merchant control
+    Settings integration allows global configuration with per-instance override
+  endcomment
   assign show_vendor = show_vendor | default: false
-  assign show_cod = show_cod | default: false
-  assign show_quick_view = show_quick_view | default: false
-  assign show_wishlist = show_wishlist | default: false
-  assign show_swatches = show_swatches | default: false
-  assign show_secondary_image = show_secondary_image | default: true
-  assign image_ratio = image_ratio | default: 'portrait'
-  assign lazy_load = lazy_load | default: true
-  assign card_class = card_class | default: ''
+  assign show_quick_view = show_quick_view | default: settings.mallem_enable_quick_view, allow_false: true
+  assign show_wishlist = show_wishlist | default: settings.mallem_enable_wishlist, allow_false: true
+  assign lazy_load = lazy_load | default: true, allow_false: true
+  assign show_badges = show_badges | default: true, allow_false: true
+  assign enable_hover_image = enable_hover_image | default: true, allow_false: true
+  assign image_ratio = image_ratio | default: settings.mallem_product_image_ratio | default: 'square'
+  assign show_swatches = show_swatches | default: true, allow_false: true
+  assign swatch_option = swatch_option | default: ''
 
-  # Determine product state
+  comment
+    WHY featured media: Primary product image for card display
+    Fallback to placeholder prevents broken layouts when merchant hasn't uploaded images
+  endcomment
+  assign featured_media = product.featured_media
+
+  comment
+    WHY second image: Premium UX pattern - reveals alternate view on hover
+    Desktop-only feature reduces bandwidth on mobile (critical for 3G MENA markets)
+    Shows product detail without forcing navigation - improves product discovery
+  endcomment
+  assign second_image = null
+  if enable_hover_image and product.media.size > 1
+    assign second_image = product.media[1]
+  endif
+
+  comment
+    WHY availability check: Core product state that controls UI rendering
+    Determines badge display, button state, and messaging to user
+  endcomment
+  assign is_sold_out = false
+  if product.available == false
+    assign is_sold_out = true
+  endif
+
+  comment
+    WHY sale detection: Discount pricing is primary conversion driver in MENA markets
+    Compare-at price indicates merchant's original price before promotion
+  endcomment
   assign on_sale = false
   if product.compare_at_price > product.price
     assign on_sale = true
   endif
 
-  assign sold_out = true
-  if product.available
-    assign sold_out = false
+  comment
+    WHY metafield badges: Merchants need flexible badge system for marketing campaigns
+    Custom badges: "New", "Hot", "Limited", "Pre-order", seasonal promotions, etc.
+    Featured badge: Highlight premium products in collections
+    Namespace 'mallem' keeps theme-specific data organized and conflict-free
+  endcomment
+  assign custom_badge = product.metafields.mallem.badge_text
+  assign featured_badge = product.metafields.mallem.featured
+
+  comment
+    WHY explicit dimensions: Prevent Cumulative Layout Shift (CLS) - critical for Core Web Vitals
+    Browser can reserve correct space before image loads, preventing layout jumps
+    Improves perceived performance and user experience, especially on slow connections
+  endcomment
+  assign image_width = 600
+  assign image_height = 600
+  if image_ratio == 'portrait'
+    assign image_height = 750
+  elsif image_ratio == 'landscape'
+    assign image_height = 450
   endif
 
-  # Get secondary image for hover effect
-  assign secondary_image = null
-  if show_secondary_image and product.media.size > 1
-    assign secondary_image = product.media[1]
-  endif
-
-  # Aspect ratio class mapping
-  assign ratio_class = 'mallem-product-card__media--portrait'
-  case image_ratio
-    when 'square'
-      assign ratio_class = 'mallem-product-card__media--square'
-    when 'landscape'
-      assign ratio_class = 'mallem-product-card__media--landscape'
-  endcase
+  comment
+    WHY first available variant: Ensures add-to-cart form has valid variant ID
+    Product may have multiple variants; we need one default for the form
+  endcomment
+  assign first_variant = product.selected_or_first_available_variant
 -%}
 
-{%- comment -%} Product Card Wrapper {%- endcomment -%}
-<div class="mallem-product-card {{ card_class }}" data-product-id="{{ product.id }}">
-
+{%- comment -%}
+  CARD WRAPPER
+  WHY BEM naming: Predictable CSS targeting, prevents class name conflicts
+  WHY data attributes: Provide hooks for JavaScript without coupling to classes
+{%- endcomment -%}
+<div
+  class="mallem-product-card mallem-product-card--{{ image_ratio }}"
+  data-mallem-product-card
+  data-mallem-product-id="{{ product.id }}"
+  data-mallem-variant-id="{{ first_variant.id }}"
+>
   {%- comment -%}
-    MEDIA CONTAINER
-    Contains image, secondary image, badges, and action buttons
+    WHY link wrapper: Makes entire card clickable - standard e-commerce UX pattern
+    Accessibility: Semantic link with descriptive ARIA label for screen readers
   {%- endcomment -%}
-  <div class="mallem-product-card__media {{ ratio_class }}">
-    <a href="{{ product.url }}"
-       class="mallem-product-card__link"
-       aria-label="{{ 'products.product.view_product' | t: product_title: product.title }}">
+  <a
+    href="{{ product.url }}"
+    class="mallem-product-card__link"
+    aria-label="{{ 'products.product.view_product' | t: product_title: product.title }}"
+  >
+    {%- comment -%}
+      MEDIA CONTAINER
+      WHY isolated container: Manages aspect ratio, badge positioning, hover effects
+      Contains: primary image, secondary image (hover), badges, action buttons
+    {%- endcomment -%}
+    <div class="mallem-product-card__media mallem-product-card__media--{{ image_ratio }}">
+      {%- comment -%}
+        PRIMARY IMAGE
+        WHY srcset: Delivers optimal image size based on screen density and viewport
+        WHY sizes: Tells browser which image to download before layout is complete
+        WHY loading="lazy": Defers offscreen images - critical for mobile performance on 3G
+        Images load only when user scrolls near them, improves initial page load
+      {%- endcomment -%}
+      {%- if featured_media -%}
+        <img
+          src="{{ featured_media | image_url: width: image_width }}"
+          srcset="
+            {{ featured_media | image_url: width: 300 }} 300w,
+            {{ featured_media | image_url: width: 600 }} 600w,
+            {{ featured_media | image_url: width: 900 }} 900w
+          "
+          sizes="(min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw"
+          alt="{{ featured_media.alt | escape }}"
+          width="{{ image_width }}"
+          height="{{ image_height }}"
+          {% if lazy_load %}loading="lazy"{% endif %}
+          class="mallem-product-card__image mallem-product-card__image--primary"
+          data-mallem-card-image
+        >
 
-      {%- comment -%} Primary Product Image {%- endcomment -%}
-      {%- if product.featured_image -%}
-        {%- if lazy_load -%}
+        {%- comment -%}
+          SECONDARY IMAGE (HOVER)
+          WHY desktop-only: Mobile hover is unreliable and wastes bandwidth
+          WHY hidden by default: CSS reveals on hover, prevents double image load
+          WHY always lazy: User might not hover, so defer load until needed
+        {%- endcomment -%}
+        {%- if second_image -%}
           <img
-            data-src="{{ product.featured_image | image_url: width: 600 }}"
-            data-srcset="{{ product.featured_image | image_url: width: 300 }} 300w,
-                        {{ product.featured_image | image_url: width: 600 }} 600w,
-                        {{ product.featured_image | image_url: width: 900 }} 900w"
-            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {{ product.featured_image.width }} {{ product.featured_image.height }}'%3E%3C/svg%3E"
-            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
-            alt="{{ product.featured_image.alt | escape }}"
-            width="{{ product.featured_image.width }}"
-            height="{{ product.featured_image.height }}"
-            loading="lazy"
-            class="mallem-product-card__image mallem-product-card__image--primary lazyload"
-          >
-        {%- else -%}
-          <img
-            srcset="{{ product.featured_image | image_url: width: 300 }} 300w,
-                    {{ product.featured_image | image_url: width: 600 }} 600w,
-                    {{ product.featured_image | image_url: width: 900 }} 900w"
-            src="{{ product.featured_image | image_url: width: 600 }}"
-            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
-            alt="{{ product.featured_image.alt | escape }}"
-            width="{{ product.featured_image.width }}"
-            height="{{ product.featured_image.height }}"
-            loading="lazy"
-            class="mallem-product-card__image mallem-product-card__image--primary"
-          >
-        {%- endif -%}
-      {%- else -%}
-        {%- comment -%} Fallback placeholder if no image {%- endcomment -%}
-        {{ 'product-1' | placeholder_svg_tag: 'mallem-product-card__image mallem-product-card__image--placeholder' }}
-      {%- endif -%}
-
-      {%- comment -%} Secondary Image (Hover Effect) {%- endcomment -%}
-      {%- if secondary_image -%}
-        {%- if lazy_load -%}
-          <img
-            data-src="{{ secondary_image | image_url: width: 600 }}"
-            data-srcset="{{ secondary_image | image_url: width: 300 }} 300w,
-                        {{ secondary_image | image_url: width: 600 }} 600w,
-                        {{ secondary_image | image_url: width: 900 }} 900w"
-            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {{ secondary_image.width }} {{ secondary_image.height }}'%3E%3C/svg%3E"
-            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
-            alt="{{ secondary_image.alt | escape }}"
-            width="{{ secondary_image.width }}"
-            height="{{ secondary_image.height }}"
-            loading="lazy"
-            class="mallem-product-card__image mallem-product-card__image--secondary lazyload"
-          >
-        {%- else -%}
-          <img
-            srcset="{{ secondary_image | image_url: width: 300 }} 300w,
-                    {{ secondary_image | image_url: width: 600 }} 600w,
-                    {{ secondary_image | image_url: width: 900 }} 900w"
-            src="{{ secondary_image | image_url: width: 600 }}"
-            sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
-            alt="{{ secondary_image.alt | escape }}"
-            width="{{ secondary_image.width }}"
-            height="{{ secondary_image.height }}"
+            src="{{ second_image | image_url: width: image_width }}"
+            srcset="
+              {{ second_image | image_url: width: 300 }} 300w,
+              {{ second_image | image_url: width: 600 }} 600w,
+              {{ second_image | image_url: width: 900 }} 900w
+            "
+            sizes="(min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw"
+            alt="{{ second_image.alt | escape }}"
+            width="{{ image_width }}"
+            height="{{ image_height }}"
             loading="lazy"
             class="mallem-product-card__image mallem-product-card__image--secondary"
           >
         {%- endif -%}
+      {%- else -%}
+        {%- comment -%}
+          WHY placeholder: Prevents broken layout for products without images
+          Shopify SVG placeholder maintains aspect ratio without external HTTP request
+        {%- endcomment -%}
+        <div class="mallem-product-card__placeholder">
+          {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+        </div>
       {%- endif -%}
-    </a>
 
-    {%- comment -%}
-      BADGES CONTAINER
-      Priority: Sold Out > Sale > COD
-    {%- endcomment -%}
-    {%- if sold_out or on_sale or show_cod -%}
-      <div class="mallem-product-card__badges">
-        {%- if sold_out -%}
-          {% render 'mallem-badge', type: 'soldout' %}
-        {%- elsif on_sale -%}
-          {% render 'mallem-badge', type: 'sale' %}
-        {%- endif -%}
+      {%- comment -%}
+        BADGES
+        WHY priority order: Sold Out > Sale > Featured > Custom
+        User needs to know availability first (can't buy if sold out)
+        Then promotional pricing, then special product status
+        Only show one badge to prevent visual clutter and maintain focus
+      {%- endcomment -%}
+      {%- if show_badges -%}
+        <div class="mallem-product-card__badges">
+          {%- if is_sold_out -%}
+            <span class="mallem-badge mallem-badge--sold-out">
+              {{ 'products.badge.sold_out' | t }}
+            </span>
+          {%- elsif on_sale -%}
+            {%- liquid
+              comment
+                WHY discount percentage: MENA markets respond better to percentage vs absolute amount
+                Clear value proposition - "Save 30%" more compelling than price difference
+              endcomment
+              assign discount = product.compare_at_price | minus: product.price
+              assign discount_percent = discount | times: 100.0 | divided_by: product.compare_at_price | round
+            -%}
+            <span class="mallem-badge mallem-badge--sale">
+              {{ 'products.badge.sale' | t }} -{{ discount_percent }}%
+            </span>
+          {%- elsif featured_badge -%}
+            {%- comment -%}
+              WHY featured badge: Highlights premium/spotlight products
+              Metafield allows merchant to manually curate featured products
+            {%- endcomment -%}
+            <span class="mallem-badge mallem-badge--featured">
+              {{ 'products.badge.featured' | t }}
+            </span>
+          {%- elsif custom_badge -%}
+            {%- comment -%}
+              WHY custom badge: Maximum merchant flexibility
+              Supports seasonal campaigns: "Ramadan Sale", "Summer Collection", etc.
+            {%- endcomment -%}
+            <span class="mallem-badge mallem-badge--custom">
+              {{ custom_badge }}
+            </span>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
 
-        {%- if show_cod and sold_out == false -%}
-          {% render 'mallem-badge', type: 'cod' %}
-        {%- endif -%}
-      </div>
-    {%- endif -%}
-
-    {%- comment -%}
-      ACTION BUTTONS CONTAINER
-      Quick View & Wishlist (optional merchant-controlled features)
-
-      QUICK VIEW HOOKS (for mallem-quick-view.js module):
-      - data-mallem-quick-view-trigger: Click handler hook
-      - data-product-handle: Product handle for AJAX fetch
-      - data-product-id: Product ID for tracking
-      - Button hidden by default via CSS (shown on hover/touch)
-      - Keyboard accessible (focusable button)
-      - Does not interfere with full-card link
-    {%- endcomment -%}
-    {%- if show_quick_view or show_wishlist -%}
+      {%- comment -%}
+        QUICK ACTIONS
+        WHY hover-show on desktop: Cleaner UI, buttons revealed on user intent
+        WHY always-show on mobile: Touch devices have no reliable hover state
+        Large tap targets (44px minimum) ensure accessibility on mobile
+      {%- endcomment -%}
       <div class="mallem-product-card__actions">
         {%- if show_quick_view -%}
+          {%- comment -%}
+            QUICK VIEW BUTTON
+            WHY data attributes: Unobtrusive JavaScript pattern - no inline event handlers
+            data-mallem-quick-view-trigger: Hook for mallem-quick-view.js module
+            data-product-handle: Used to fetch product via AJAX (/products/{handle}?view=quick-view)
+            WHY handle over URL: Cleaner AJAX patterns, easier to construct fetch URLs
+          {%- endcomment -%}
           <button
             type="button"
             class="mallem-product-card__action mallem-product-card__action--quick-view"
-            aria-label="{{ 'products.product.quick_view' | t: product_title: product.title }}"
             data-mallem-quick-view-trigger
             data-product-handle="{{ product.handle }}"
-            data-product-id="{{ product.id }}">
+            data-product-id="{{ product.id }}"
+            aria-label="{{ 'products.product.quick_view' | t: product_title: product.title }}"
+          >
             <svg class="mallem-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M10 4C5 4 1.73 7.11 1 10c.73 2.89 4 6 9 6s8.27-3.11 9-6c-.73-2.89-4-6-9-6zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" fill="currentColor"/>
+              <path d="M10 4C5 4 1.73 7.11 1 10c.73 2.89 4 6 9 6s8.27-3.11 9-6c-.73-2.89-4-6-9-6zm0 10a4 4 0 110-8 4 4 0 010 8zm0-6.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" fill="currentColor"/>
             </svg>
-            <span class="mallem-visually-hidden">{{ 'products.product.quick_view' | t }}</span>
           </button>
         {%- endif -%}
 
         {%- if show_wishlist -%}
+          {%- comment -%}
+            WISHLIST BUTTON
+            WHY data attribute: Hook for mallem-wishlist.js module (when implemented)
+            Ready for integration - follows same pattern as quick view
+          {%- endcomment -%}
           <button
             type="button"
             class="mallem-product-card__action mallem-product-card__action--wishlist"
-            aria-label="{{ 'products.product.add_to_wishlist' | t: product_title: product.title }}"
+            data-mallem-wishlist-toggle
             data-product-id="{{ product.id }}"
-            data-wishlist-toggle>
+            aria-label="{{ 'products.product.add_to_wishlist' | t: product_title: product.title }}"
+          >
             <svg class="mallem-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M10 18.35l-1.45-1.32C3.4 12.36 0 9.28 0 5.5 0 2.42 2.42 0 5.5 0 7.24 0 8.91.81 10 2.09 11.09.81 12.76 0 14.5 0 17.58 0 20 2.42 20 5.5c0 3.78-3.4 6.86-8.55 11.54L10 18.35z" fill="currentColor"/>
+              <path d="M10 17.5l-1.1-1c-4-3.6-6.6-6-6.6-8.9 0-2.4 1.9-4.3 4.3-4.3 1.4 0 2.7.6 3.6 1.6.9-1 2.2-1.6 3.6-1.6 2.4 0 4.3 1.9 4.3 4.3 0 2.9-2.6 5.3-6.6 8.9l-1.1 1z" stroke="currentColor" stroke-width="1.5" fill="none"/>
             </svg>
-            <span class="mallem-visually-hidden">{{ 'products.product.add_to_wishlist' | t }}</span>
           </button>
         {%- endif -%}
       </div>
+    </div>
+  </a>
+
+  {%- comment -%}
+    PRODUCT INFO
+    WHY outside link: Allows interactive elements (buttons, links) without nesting
+    Semantic HTML: h3 for title (assuming h2 used for section headings)
+  {%- endcomment -%}
+  <div class="mallem-product-card__info">
+    {%- if show_vendor and product.vendor != blank -%}
+      <p class="mallem-product-card__vendor">
+        {{ product.vendor }}
+      </p>
     {%- endif -%}
+
+    {%- comment -%}
+      WHY line clamp: Long titles break grid layouts
+      2 lines maximum prevents overflow while showing enough info
+    {%- endcomment -%}
+    <h3 class="mallem-product-card__title">
+      <a href="{{ product.url }}">{{ product.title }}</a>
+    </h3>
+
+    {%- comment -%}
+      VARIANT SWATCHES
+      WHY after title, before price: Swatch selection can update the displayed price
+      (when variant prices differ), so swatches must sit between the two for visual logic.
+      WHY show_swatches guard: Cards in tight layouts (mini-cart, sidebar) can opt out.
+      enable_hover_image passed through so swatch JS knows whether to preview on hover.
+    {%- endcomment -%}
+    {%- if show_swatches -%}
+      {%- render 'mallem-swatches',
+        product: product,
+        option_name: swatch_option,
+        enable_hover_image: enable_hover_image
+      -%}
+    {%- endif -%}
+
+    {%- comment -%}
+      PRICE DISPLAY
+      WHY reuse snippet: Consistent price formatting across entire theme
+      mallem-price handles: sale prices, compare-at, ranges, unit prices
+      Centralized logic prevents bugs from duplicate code
+    {%- endcomment -%}
+    <div class="mallem-product-card__price">
+      {% render 'mallem-price',
+        product: product,
+        show_discount_badge: true,
+        price_class: 'mallem-product-card__price-value'
+      %}
+    </div>
   </div>
 
   {%- comment -%}
-    PRODUCT INFO CONTAINER
-    Contains vendor, title, price, swatches
+    ADD TO CART BUTTON
+    WHY outside link: Prevents invalid HTML (nested interactive elements)
+    WHY form: Progressive enhancement - works without JavaScript
+    WHY data-mallem-product-form: Hook for mallem-product-card.js AJAX handling
   {%- endcomment -%}
-  <div class="mallem-product-card__info">
+  <div class="mallem-product-card__footer">
+    <form
+      action="{{ routes.cart_add_url }}"
+      method="post"
+      class="mallem-product-card__form"
+      data-mallem-product-form
+    >
+      {%- comment -%}
+        WHY hidden inputs: Standard Shopify cart form pattern
+        Form works without JS - submits to cart page
+        JS intercepts and converts to AJAX for better UX
+      {%- endcomment -%}
+      {%- comment -%}
+        WHY data-mallem-variant-id on hidden input: mallem-swatches.js updates this
+        input's value when the user selects a different swatch. The form then submits
+        the correct variant ID to Shopify's cart API. The card wrapper div also carries
+        data-mallem-variant-id for read-only use by other modules (analytics, cart drawer);
+        the JS uses input[data-mallem-variant-id] to specifically target this writable field.
+      {%- endcomment -%}
+      <input type="hidden" name="id" value="{{ first_variant.id }}" data-mallem-variant-id>
+      <input type="hidden" name="quantity" value="1">
 
-    {%- comment -%} Vendor (optional) {%- endcomment -%}
-    {%- if show_vendor and product.vendor -%}
-      <div class="mallem-product-card__vendor">
-        <a href="{{ product.vendor | url_for_vendor }}" class="mallem-product-card__vendor-link">
-          {{ product.vendor }}
-        </a>
-      </div>
-    {%- endif -%}
-
-    {%- comment -%} Product Title {%- endcomment -%}
-    <h3 class="mallem-product-card__title">
-      <a href="{{ product.url }}" class="mallem-product-card__title-link">
-        {{ product.title | escape }}
-      </a>
-    </h3>
-
-    {%- comment -%} Product Price (using dedicated snippet) {%- endcomment -%}
-    <div class="mallem-product-card__price-wrapper">
-      {% render 'mallem-price',
-         product: product,
-         show_compare: true,
-         show_discount: true
-      %}
-    </div>
-
-    {%- comment -%}
-      VARIANT SWATCHES (optional)
-      Hook for color/size swatches - implement via separate JS module
-    {%- endcomment -%}
-    {%- if show_swatches and product.has_only_default_variant == false -%}
-      <div class="mallem-product-card__swatches" data-product-swatches="{{ product.id }}">
-        {%- comment -%}
-          Swatches rendered via JavaScript to avoid bloating HTML
-          This maintains performance when rendering 50+ products
-        {%- endcomment -%}
-      </div>
-    {%- endif -%}
-
+      {%- comment -%}
+        WHY disabled state: Prevents form submission errors for unavailable products
+        WHY icon + text: Visual clarity - icon helps non-readers understand action
+        44px min height ensures touch-friendly tap target on mobile
+      {%- endcomment -%}
+      <button
+        type="submit"
+        class="mallem-product-card__add-button"
+        {% if is_sold_out %}disabled{% endif %}
+        data-mallem-add-to-cart
+        aria-label="{{ 'products.product.add_to_cart' | t: product_title: product.title }}"
+      >
+        {%- if is_sold_out -%}
+          <span class="mallem-product-card__button-text">{{ 'products.product.sold_out' | t }}</span>
+        {%- else -%}
+          <svg class="mallem-icon mallem-product-card__button-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M6 16a1 1 0 100-2 1 1 0 000 2zM14 16a1 1 0 100-2 1 1 0 000 2zM17 4H3.42L3 1.5A1 1 0 002 1H0v1h1.58l1.5 9.5A1 1 0 004 13h11v-1H4.42l-.27-1.5H15a1 1 0 00.97-.75l2-7A1 1 0 0017 2z" fill="currentColor"/>
+          </svg>
+          <span class="mallem-product-card__button-text">{{ 'products.product.add_to_cart' | t }}</span>
+        {%- endif -%}
+      </button>
+    </form>
   </div>
 </div>

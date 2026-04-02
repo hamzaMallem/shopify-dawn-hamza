@@ -1,0 +1,190 @@
+{%- comment -%}
+  Component: Mallem Product Info
+  Purpose: Full product information panel — vendor, title, rating, price,
+           variant form (swatches + quantity + stock + ATC), trust signals,
+           sticky ATC trigger, and accordion tabs.
+  Used in: sections/mallem-product-main.liquid
+
+  Features:
+  - Renders in strict conversion-optimised order (trust hierarchy)
+  - Variant form posts to /cart/add (JS intercepts for AJAX)
+  - Quantity stepper with 44px min touch targets (WCAG 2.5.5)
+  - COD badge + free shipping threshold line
+  - Delegates sticky ATC + accordion to sub-snippets
+
+  RTL: All logical properties. Form elements flow inline-start→end.
+  Performance: No inline JS. Custom Element handles behaviour.
+{%- endcomment -%}
+
+{%- liquid
+  assign current_variant = product.selected_or_first_available_variant
+  assign show_vendor      = section.settings.show_vendor
+  assign show_rating      = section.settings.show_rating
+  assign show_cod         = section.settings.show_cod_badge
+  assign show_shipping    = section.settings.show_free_shipping_threshold
+  assign shipping_amount  = section.settings.free_shipping_amount | default: 500
+-%}
+
+<div class="mallem-product-info" data-mallem-product-info>
+
+  {%- comment -%} 1. Vendor ──────────────────────────────────────────────── {%- endcomment -%}
+  {%- if show_vendor and product.vendor != blank -%}
+    <p class="mallem-product-info__vendor" data-mallem-vendor>
+      <span class="mallem-sr-only">{{ 'mallem.product.vendor_label' | t }}</span>
+      <a href="{{ product.vendor | url_for_vendor }}" class="mallem-product-info__vendor-link">
+        {{- product.vendor | escape -}}
+      </a>
+    </p>
+  {%- endif -%}
+
+  {%- comment -%} 2. Title (H1 — only one per page) ─────────────────────── {%- endcomment -%}
+  <h1 class="mallem-product-info__title" data-mallem-product-title>
+    {{- product.title | escape -}}
+  </h1>
+
+  {%- comment -%} 3. Rating placeholder — filled by review app JS ─────────── {%- endcomment -%}
+  {%- if show_rating -%}
+    <div
+      class="mallem-product-info__rating"
+      data-mallem-rating
+      aria-hidden="true"
+    >
+      {%- comment -%}
+        Empty intentionally. A reviews app (Judge.me, Loox, etc.) targets
+        [data-mallem-rating] to inject star rating widget.
+      {%- endcomment -%}
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} 4. Price block ─────────────────────────────────────────── {%- endcomment -%}
+  <div
+    class="mallem-product-info__price"
+    data-mallem-price-container
+    data-mallem-variant-id="{{ current_variant.id }}"
+  >
+    {%- if current_variant.compare_at_price > current_variant.price -%}
+      <span class="mallem-product-info__price-compare">
+        <span class="mallem-sr-only">{{ 'products.product.price.regular_price' | t }}</span>
+        <s>{{ current_variant.compare_at_price | money }}</s>
+      </span>
+      <span class="mallem-product-info__price-badge mallem-badge mallem-badge--sale">
+        {{- 'products.badge.sale' | t -}}
+      </span>
+    {%- endif -%}
+
+    <span
+      class="mallem-product-info__price-current{% if current_variant.compare_at_price > current_variant.price %} mallem-product-info__price-current--sale{% endif %}"
+      data-mallem-price
+    >
+      <span class="mallem-sr-only">{{ 'products.product.price.sale_price' | t }}</span>
+      {{- current_variant.price | money -}}
+    </span>
+  </div>
+
+  {%- comment -%} 5. Variant form ────────────────────────────────────────── {%- endcomment -%}
+  <form
+    action="{{ routes.cart_add_url }}"
+    method="post"
+    enctype="multipart/form-data"
+    class="mallem-product-info__form"
+    data-mallem-product-form
+    novalidate
+  >
+    <input type="hidden" name="id" value="{{ current_variant.id }}" data-mallem-variant-input>
+    <input type="hidden" name="quantity" value="1" data-mallem-qty-hidden>
+
+    {%- comment -%} Variant selectors (swatches or dropdowns) {%- endcomment -%}
+    {%- unless product.has_only_default_variant -%}
+      {%- render 'mallem-variant-swatches', product: product, section: section -%}
+    {%- endunless -%}
+
+    {%- comment -%} Quantity stepper {%- endcomment -%}
+    <div class="mallem-product-info__qty" role="group" aria-label="{{ 'mallem.product.quantity_label' | t }}">
+      <button
+        class="mallem-product-info__qty-btn mallem-product-info__qty-btn--minus"
+        data-mallem-qty-minus
+        type="button"
+        aria-label="{{ 'mallem.product.decrease_quantity' | t }}"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <input
+        class="mallem-product-info__qty-input"
+        type="number"
+        name="quantity"
+        value="1"
+        min="1"
+        max="{{ current_variant.inventory_quantity | default: 999 }}"
+        data-mallem-qty-input
+        aria-label="{{ 'mallem.product.quantity_label' | t }}"
+      >
+
+      <button
+        class="mallem-product-info__qty-btn mallem-product-info__qty-btn--plus"
+        data-mallem-qty-plus
+        type="button"
+        aria-label="{{ 'mallem.product.increase_quantity' | t }}"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    {%- comment -%} Stock indicator {%- endcomment -%}
+    {%- render 'mallem-product-stock', product: product, section: section, current_variant: current_variant -%}
+
+    {%- comment -%} Add to cart button {%- endcomment -%}
+    <button
+      class="mallem-product-info__atc mallem-btn mallem-btn--primary"
+      data-mallem-atc-button
+      type="submit"
+      {%- unless current_variant.available %} disabled aria-disabled="true"{%- endunless %}
+    >
+      <span data-mallem-atc-text>
+        {%- if current_variant.available -%}
+          {{- 'mallem.product.add_to_cart' | t -}}
+        {%- else -%}
+          {{- 'mallem.product.sold_out' | t -}}
+        {%- endif -%}
+      </span>
+      {%- comment -%} Loading spinner — revealed via CSS class .mallem-btn--loading {%- endcomment -%}
+      <span class="mallem-btn__spinner" aria-hidden="true"></span>
+    </button>
+
+    {%- comment -%} Inline error message area {%- endcomment -%}
+    <div
+      class="mallem-product-info__form-error"
+      data-mallem-form-error
+      role="alert"
+      aria-live="assertive"
+      hidden
+    ></div>
+
+    {%- comment -%} COD trust badge ─────────────────────────────────────── {%- endcomment -%}
+    {%- if show_cod -%}
+      {%- render 'mallem-badge', type: 'cod', show_icon: true -%}
+    {%- endif -%}
+
+    {%- comment -%} Free shipping threshold line ─────────────────────────── {%- endcomment -%}
+    {%- if show_shipping and shipping_amount > 0 -%}
+      <p class="mallem-product-info__shipping-line" data-mallem-free-shipping-line>
+        {%- assign formatted_amount = shipping_amount | times: 100 | money -%}
+        {{- 'mallem.product.free_shipping_over' | t: amount: formatted_amount -}}
+      </p>
+    {%- endif -%}
+
+  </form>
+
+  {%- comment -%} 6. Sticky ATC (renders as Custom Element, hidden by default) ─ {%- endcomment -%}
+  {%- if section.settings.enable_sticky_atc -%}
+    {%- render 'mallem-sticky-atc', product: product, section: section, current_variant: current_variant -%}
+  {%- endif -%}
+
+  {%- comment -%} 7. Accordion tabs ──────────────────────────────────────── {%- endcomment -%}
+  {%- render 'mallem-product-accordion', blocks: section.blocks, product: product -%}
+
+</div><!-- /.mallem-product-info -->

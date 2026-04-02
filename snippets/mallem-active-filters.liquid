@@ -1,0 +1,88 @@
+{%- comment -%}
+  Component: Active Filters
+  Purpose: Dismissible pills row showing currently applied collection filters
+  Used in: sections/mallem-collection.liquid
+
+  Parameters:
+    filters  {Array}  collection.filters object
+
+  Features:
+  - One pill per active filter value (list / boolean)
+  - Price range shown as a single pill (From X – To Y)
+  - "Clear all" link visible when 2+ active filters
+  - aria-live region so screen readers announce changes
+  - Rendered empty when no active filters (JS replaces entire element)
+
+  RTL: flex-wrap auto-flows in reading direction; logical properties throughout
+  Performance: Pure Liquid render — zero JS in this snippet
+{%- endcomment -%}
+
+{%- liquid
+  assign active_count = 0
+  for filter in filters
+    assign active_count = active_count | plus: filter.active_values.size
+    if filter.type == 'price_range'
+      if filter.min_value.value or filter.max_value.value
+        assign active_count = active_count | plus: 1
+      endif
+    endif
+  endfor
+-%}
+
+{%- if active_count > 0 -%}
+  <div
+    class="mallem-active-filters"
+    data-mallem-active-filters
+    aria-live="polite"
+    aria-label="{{ 'mallem.collection.active_filters_label' | t }}"
+  >
+
+    {%- for filter in filters -%}
+
+      {%- if filter.type == 'price_range' -%}
+        {%- if filter.min_value.value or filter.max_value.value -%}
+          <div class="mallem-active-filter" data-mallem-active-filter>
+            <span class="mallem-active-filter__label">
+              {%- if filter.min_value.value and filter.max_value.value -%}
+                {{ filter.min_value.value | money }} – {{ filter.max_value.value | money }}
+              {%- elsif filter.min_value.value -%}
+                {{ 'mallem.collection.price_from' | t }}: {{ filter.min_value.value | money }}
+              {%- else -%}
+                {{ 'mallem.collection.price_to' | t }}: {{ filter.max_value.value | money }}
+              {%- endif -%}
+            </span>
+            <a
+              href="{{ filter.url_to_remove }}"
+              class="mallem-active-filter__remove"
+              aria-label="{{ 'mallem.collection.remove_filter' | t: value: filter.label }}"
+              data-mallem-remove-filter
+            >&times;</a>
+          </div>
+        {%- endif -%}
+
+      {%- else -%}
+        {%- for value in filter.active_values -%}
+          <div class="mallem-active-filter" data-mallem-active-filter>
+            <span class="mallem-active-filter__label">{{ value.label | escape }}</span>
+            <a
+              href="{{ value.url_to_remove }}"
+              class="mallem-active-filter__remove"
+              aria-label="{{ 'mallem.collection.remove_filter' | t: value: value.label }}"
+              data-mallem-remove-filter
+            >&times;</a>
+          </div>
+        {%- endfor -%}
+      {%- endif -%}
+
+    {%- endfor -%}
+
+    {%- if active_count >= 2 -%}
+      <a
+        href="{{ collection.url }}"
+        class="mallem-active-filters__clear-all"
+        data-mallem-clear-filters
+      >{{ 'mallem.collection.clear_all' | t }}</a>
+    {%- endif -%}
+
+  </div>
+{%- endif -%}

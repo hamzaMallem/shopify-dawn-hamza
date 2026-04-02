@@ -1,0 +1,330 @@
+{%- comment -%}
+  Component: Collection Page
+  Purpose: Full collection page — product grid, AJAX filters, sorting, Load More
+  Used in: templates/collection.json
+
+  Features:
+  - AJAX filtering via Shopify Sections API (minimal payload — no full page parse)
+  - pushState / popstate for shareable, bookmarkable filtered URLs
+  - Progressive enhancement: form submit works without JS
+  - Desktop: 280px sticky filter sidebar (hidden below 990px)
+  - Mobile: slide-up filter drawer (hidden above 990px)
+  - Active filter pills row below header
+  - Load More button — appends to grid, no full grid wipe
+  - Dispatches `mallem:products:loaded` after every grid update
+  - Re-inits MallemSwatches + MallemProductCard on AJAX update
+  - Skeleton loading state during fetch (CSS class on wrapper)
+
+  RTL: CSS logical properties only; sidebar placement via flex-direction on body
+  Performance: CSS + JS loaded as section-scoped assets (not globally)
+               contain: layout style on grid prevents repaint propagation
+{%- endcomment -%}
+
+{{ 'mallem-filters.css' | asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign products_per_page = section.settings.products_per_page
+  assign enable_filters     = section.settings.enable_filters
+  assign enable_sorting     = section.settings.enable_sorting
+  assign columns_desktop    = section.settings.columns_desktop
+  assign columns_mobile     = section.settings.columns_mobile
+  assign sort_by            = collection.sort_by | default: collection.default_sort_by
+-%}
+
+{%- paginate collection.products by products_per_page -%}
+
+<div
+  class="mallem-collection"
+  data-mallem-collection
+  data-section-id="{{ section.id }}"
+  data-columns-desktop="{{ columns_desktop }}"
+  data-columns-mobile="{{ columns_mobile }}"
+>
+
+  {%- comment -%} ===== HEADER ===== {%- endcomment -%}
+  <div class="mallem-collection__header">
+    <h1 class="mallem-collection__title">{{ collection.title | escape }}</h1>
+
+    <div class="mallem-collection__controls">
+
+      {%- if enable_filters -%}
+        {%- liquid
+          assign active_badge_count = 0
+          for filter in collection.filters
+            assign active_badge_count = active_badge_count | plus: filter.active_values.size
+            if filter.type == 'price_range'
+              if filter.min_value.value or filter.max_value.value
+                assign active_badge_count = active_badge_count | plus: 1
+              endif
+            endif
+          endfor
+        -%}
+        <button
+          type="button"
+          class="mallem-collection__filter-toggle"
+          aria-expanded="false"
+          aria-controls="mallem-filter-drawer"
+          data-mallem-filter-toggle
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+            <path d="M1 3h14M4 8h8M7 13h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          {{ 'mallem.collection.filter_sort' | t }}
+          {%- if active_badge_count > 0 -%}
+            <span class="mallem-collection__filter-badge" aria-hidden="true">{{ active_badge_count }}</span>
+          {%- endif -%}
+        </button>
+      {%- endif -%}
+
+      {%- if enable_sorting -%}
+        <div class="mallem-collection__sort-wrapper">
+          <label for="CollectionSortBy" class="visually-hidden">
+            {{ 'mallem.collection.sort_by_label' | t }}
+          </label>
+          <select
+            id="CollectionSortBy"
+            name="sort_by"
+            class="mallem-collection__sort-select"
+            data-mallem-sort
+          >
+            {%- for option in collection.sort_options -%}
+              <option value="{{ option.value }}"{% if option.value == sort_by %} selected{% endif %}>
+                {{- option.name -}}
+              </option>
+            {%- endfor -%}
+          </select>
+        </div>
+      {%- endif -%}
+
+    </div>
+  </div>
+
+  {%- comment -%} ===== ACTIVE FILTER PILLS ===== {%- endcomment -%}
+  {%- if enable_filters -%}
+    {%- render 'mallem-active-filters', filters: collection.filters -%}
+  {%- endif -%}
+
+  {%- comment -%} ===== BODY: sidebar + main ===== {%- endcomment -%}
+  <div class="mallem-collection__body">
+
+    {%- if enable_filters -%}
+      <aside
+        class="mallem-collection__sidebar"
+        id="mallem-filter-sidebar"
+        aria-label="{{ 'mallem.collection.filter_sidebar_label' | t }}"
+      >
+        {%- render 'mallem-filter-sidebar', filters: collection.filters -%}
+      </aside>
+    {%- endif -%}
+
+    <div class="mallem-collection__main">
+
+      {%- comment -%} Product count — aria-live so screen readers announce after AJAX {%- endcomment -%}
+      <p
+        class="mallem-collection__count"
+        data-mallem-product-count
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {{- 'mallem.collection.product_count' | t: count: collection.products_count -}}
+      </p>
+
+      {%- comment -%}
+        Product grid.
+        WHY data-mallem-collection-grid: JS targets this for AJAX replacement.
+        WHY contain: layout style: prevents filter changes from repainting ancestor elements.
+      {%- endcomment -%}
+      <ul
+        id="mallem-product-grid"
+        class="mallem-collection__grid mallem-collection__grid--desktop-{{ columns_desktop }} mallem-collection__grid--mobile-{{ columns_mobile }}"
+        data-mallem-collection-grid
+        aria-busy="false"
+        role="list"
+      >
+        {%- for product in collection.products -%}
+          <li class="mallem-collection__item">
+            {%- render 'mallem-product-card',
+              product:             product,
+              show_vendor:         section.settings.show_vendor,
+              show_quick_view:     section.settings.show_quick_view,
+              show_wishlist:       false,
+              image_ratio:         section.settings.image_ratio,
+              lazy_load:           true,
+              show_badges:         true,
+              enable_hover_image:  section.settings.enable_hover_image,
+              show_swatches:       section.settings.show_swatches,
+              swatch_option:       section.settings.swatch_option_name
+            -%}
+          </li>
+        {%- else -%}
+          <li class="mallem-collection__empty" data-mallem-empty-state>
+            <p>{{ 'mallem.collection.no_results' | t }}</p>
+            {%- if collection.filters.size > 0 -%}
+              <a href="{{ collection.url }}" class="mallem-collection__clear-link" data-mallem-clear-filters>
+                {{ 'mallem.collection.clear_filters' | t }}
+              </a>
+            {%- endif -%}
+          </li>
+        {%- endfor -%}
+      </ul>
+
+      {%- comment -%} ===== LOAD MORE + PAGE INFO ===== {%- endcomment -%}
+      {%- if paginate.pages > 1 -%}
+        <div class="mallem-collection__pagination" data-mallem-pagination>
+
+          {%- assign shown_count = paginate.current_offset | plus: collection.products.size -%}
+
+          <p class="mallem-collection__page-info">
+            {{- 'mallem.collection.showing_count' | t: shown: shown_count, total: collection.products_count -}}
+          </p>
+
+          {%- if paginate.next -%}
+            <button
+              type="button"
+              class="mallem-collection__load-more"
+              data-mallem-load-more
+              data-next-url="{{ paginate.next.url }}"
+              aria-busy="false"
+            >
+              <span data-mallem-load-more-text>{{ 'mallem.collection.load_more' | t }}</span>
+              <span class="mallem-collection__load-more-spinner" aria-hidden="true"></span>
+            </button>
+          {%- endif -%}
+
+        </div>
+      {%- endif -%}
+
+    </div>{%- comment -%} /.mallem-collection__main {%- endcomment -%}
+
+  </div>{%- comment -%} /.mallem-collection__body {%- endcomment -%}
+
+  {%- comment -%} ===== MOBILE FILTER DRAWER ===== {%- endcomment -%}
+  {%- if enable_filters -%}
+    {%- render 'mallem-filter-drawer',
+      filters:        collection.filters,
+      enable_sorting: enable_sorting,
+      sort_options:   collection.sort_options,
+      sort_by:        sort_by
+    -%}
+  {%- endif -%}
+
+</div>
+
+{%- endpaginate -%}
+
+<script src="{{ 'mallem-filters.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "t:sections.mallem_collection.name",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.mallem_collection.settings.header_products.content"
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "min": 8,
+      "max": 48,
+      "step": 4,
+      "default": 24,
+      "label": "t:sections.mallem_collection.settings.products_per_page.label"
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "t:sections.mallem_collection.settings.columns_desktop.label",
+      "options": [
+        { "value": "2", "label": "2" },
+        { "value": "3", "label": "3" },
+        { "value": "4", "label": "4" }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "t:sections.mallem_collection.settings.columns_mobile.label",
+      "options": [
+        { "value": "1", "label": "1" },
+        { "value": "2", "label": "2" }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_collection.settings.header_filters.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_filters",
+      "label": "t:sections.mallem_collection.settings.enable_filters.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_sorting",
+      "label": "t:sections.mallem_collection.settings.enable_sorting.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_collection.settings.header_card.content"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "t:sections.mallem_collection.settings.image_ratio.label",
+      "options": [
+        { "value": "square",    "label": "t:sections.mallem_collection.settings.image_ratio.options.square" },
+        { "value": "portrait",  "label": "t:sections.mallem_collection.settings.image_ratio.options.portrait" },
+        { "value": "landscape", "label": "t:sections.mallem_collection.settings.image_ratio.options.landscape" }
+      ],
+      "default": "square"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "t:sections.mallem_collection.settings.show_vendor.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quick_view",
+      "label": "t:sections.mallem_collection.settings.show_quick_view.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_hover_image",
+      "label": "t:sections.mallem_collection.settings.enable_hover_image.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_collection.settings.header_swatches.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_swatches",
+      "label": "t:sections.mallem_collection.settings.show_swatches.label",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "swatch_option_name",
+      "label": "t:sections.mallem_collection.settings.swatch_option_name.label",
+      "placeholder": "Color",
+      "info": "t:sections.mallem_collection.settings.swatch_option_name.info"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.mallem_collection.presets.name"
+    }
+  ]
+}
+{% endschema %}

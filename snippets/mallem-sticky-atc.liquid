@@ -1,0 +1,86 @@
+{%- comment -%}
+  Component: Mallem Sticky ATC
+  Purpose: Fixed bottom bar that slides up when the primary ATC button scrolls
+           out of view — keeps the purchase CTA always reachable on mobile.
+           WHY: Mobile product pages lose 40-60% of ATC taps when users scroll past
+           the form. A sticky bar recovers those lost conversions.
+  Used in: snippets/mallem-product-info.liquid
+
+  Features:
+  - Custom Element <mallem-sticky-atc> — IntersectionObserver drives show/hide
+  - Contains: product thumbnail 48×48, variant title, price, ATC button
+  - Position: fixed, bottom: 0, inset-inline: 0 (RTL safe)
+  - Safe-area padding: env(safe-area-inset-bottom) for iPhone home bar
+  - Hidden by default: translateY(100%), transition 300ms ease
+  - aria-hidden toggled by JS (screen readers skip when hidden)
+  - Variant change → mallem:variant:changed → syncs price + variant text
+  - Sticky button click → submit original form (no duplicate cart logic)
+
+  RTL: inset-inline: 0 covers both directions. Flex row reverses via CSS logical.
+  Performance: IntersectionObserver (no scroll listener). Transform animation (GPU).
+{%- endcomment -%}
+
+{%- liquid
+  assign current_variant = current_variant | default: product.selected_or_first_available_variant
+  assign thumb_image     = product.featured_image
+-%}
+
+<mallem-sticky-atc
+  class="mallem-sticky-atc"
+  data-mallem-sticky-atc
+  aria-hidden="true"
+  data-mallem-section-id="{{ section.id }}"
+>
+  <div class="mallem-sticky-atc__inner">
+
+    {%- comment -%} Product thumbnail — 48×48, matches ATC bar height aesthetic {%- endcomment -%}
+    {%- if thumb_image -%}
+      <div class="mallem-sticky-atc__thumb">
+        <img
+          src="{{ thumb_image | image_url: width: 96 }}"
+          alt="{{ thumb_image.alt | escape | default: product.title | escape }}"
+          width="48"
+          height="48"
+          loading="lazy"
+          class="mallem-sticky-atc__thumb-img"
+          data-mallem-sticky-thumb
+        >
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} Product + variant info {%- endcomment -%}
+    <div class="mallem-sticky-atc__meta">
+      <p class="mallem-sticky-atc__title" data-mallem-sticky-title>
+        {{- product.title | escape | truncate: 40 -}}
+      </p>
+      {%- unless product.has_only_default_variant -%}
+        <p class="mallem-sticky-atc__variant" data-mallem-sticky-variant>
+          {{- current_variant.title | escape -}}
+        </p>
+      {%- endunless -%}
+    </div>
+
+    {%- comment -%} Price — updated by JS on variant change {%- endcomment -%}
+    <div class="mallem-sticky-atc__price" data-mallem-sticky-price>
+      {{- current_variant.price | money -}}
+    </div>
+
+    {%- comment -%} ATC button — clicking triggers the main product form submit {%- endcomment -%}
+    <button
+      class="mallem-btn mallem-btn--primary mallem-sticky-atc__btn"
+      data-mallem-sticky-btn
+      type="button"
+      aria-label="{{ 'mallem.product.add_to_cart' | t }}"
+      {%- unless current_variant.available %} disabled aria-disabled="true"{%- endunless %}
+    >
+      <span data-mallem-sticky-btn-text>
+        {%- if current_variant.available -%}
+          {{- 'mallem.product.add_to_cart' | t -}}
+        {%- else -%}
+          {{- 'mallem.product.sold_out' | t -}}
+        {%- endif -%}
+      </span>
+    </button>
+
+  </div><!-- /.mallem-sticky-atc__inner -->
+</mallem-sticky-atc>

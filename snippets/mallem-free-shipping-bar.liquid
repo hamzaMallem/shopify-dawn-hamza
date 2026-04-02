@@ -1,0 +1,103 @@
+{%- comment -%}
+  Component: Free Shipping Progress Bar
+  Purpose: Motivates customers to reach the free shipping threshold by showing
+           progress in real-time inside the cart drawer.
+  Used in: snippets/mallem-cart-drawer.liquid (between header and scrollable body)
+
+  Features:
+  - Three states: progress (0–79%) / almost (≥80%) / achieved (100%)
+  - Liquid renders the correct initial state — zero JS flash on open
+  - JS updates on mallem:cart:updated event (no extra fetch)
+  - Translation strings baked into data attributes for zero-JS i18n
+  - Progressive enhancement: bar is fully functional without JS
+
+  RTL: CSS logical properties only; fill grows from inline-start in both directions
+  Performance: CSS custom property --shipping-percent prevents layout thrashing
+{%- endcomment -%}
+
+{%- if settings.mallem_free_shipping_enabled -%}
+  {%- assign threshold_cents = settings.mallem_free_shipping_threshold | times: 100 -%}
+
+  {%- if threshold_cents > 0 -%}
+    {%- assign _cart_total   = cart.total_price -%}
+    {%- assign _remaining    = threshold_cents | minus: _cart_total -%}
+    {%- if _remaining < 0 -%}{%- assign _remaining = 0 -%}{%- endif -%}
+    {%- assign _remaining_money = _remaining | money -%}
+
+    {%- comment -%} Integer percent, capped at 100 {%- endcomment -%}
+    {%- assign _percent = _cart_total | times: 100 | divided_by: threshold_cents -%}
+    {%- if _percent > 100 -%}{%- assign _percent = 100 -%}{%- endif -%}
+
+    {%- if _cart_total >= threshold_cents -%}
+      {%- assign _bar_state = 'achieved' -%}
+    {%- elsif _percent >= 80 -%}
+      {%- assign _bar_state = 'almost' -%}
+    {%- else -%}
+      {%- assign _bar_state = 'progress' -%}
+    {%- endif -%}
+
+    <div
+      class="mallem-shipping-bar mallem-shipping-bar--{{ _bar_state }}"
+      data-shipping-bar
+      data-threshold="{{ threshold_cents }}"
+      data-str-progress="{{ 'mallem.free_shipping_bar.progress' | t: amount: '__AMOUNT__' | escape }}"
+      data-str-almost="{{ 'mallem.free_shipping_bar.almost'   | t: amount: '__AMOUNT__' | escape }}"
+      data-str-achieved="{{ 'mallem.free_shipping_bar.achieved' | t | escape }}"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <div class="mallem-shipping-bar__inner">
+        <span class="mallem-shipping-bar__icon" aria-hidden="true">
+          {%- comment -%} Truck: visible in progress + almost states via CSS {%- endcomment -%}
+          <svg class="mallem-shipping-bar__svg mallem-shipping-bar__svg--truck"
+               width="16" height="16" viewBox="0 0 16 16" fill="none" focusable="false">
+            <path d="M1 4.5h9v7H1v-7z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+            <path d="M10 7h3.5l1.5 2v2.5H10V7z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+            <circle cx="3.5" cy="12.5" r="1.25" stroke="currentColor" stroke-width="1.1"/>
+            <circle cx="11.5" cy="12.5" r="1.25" stroke="currentColor" stroke-width="1.1"/>
+          </svg>
+          {%- comment -%} Check circle: visible only in achieved state via CSS {%- endcomment -%}
+          <svg class="mallem-shipping-bar__svg mallem-shipping-bar__svg--check"
+               width="16" height="16" viewBox="0 0 16 16" fill="none" focusable="false">
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/>
+            <path d="M5 8.5l2.5 2.5L11 6" stroke="currentColor" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+
+        <p class="mallem-shipping-bar__message">
+          {%- case _bar_state -%}
+            {%- when 'achieved' -%}
+              <span data-shipping-bar-text>
+                {{- 'mallem.free_shipping_bar.achieved' | t -}}
+              </span>
+            {%- when 'almost' -%}
+              <span data-shipping-bar-text>
+                {{- 'mallem.free_shipping_bar.almost' | t: amount: _remaining_money -}}
+              </span>
+            {%- else -%}
+              <span data-shipping-bar-text>
+                {{- 'mallem.free_shipping_bar.progress' | t: amount: _remaining_money -}}
+              </span>
+          {%- endcase -%}
+        </p>
+      </div>
+
+      <div
+        class="mallem-shipping-bar__track"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ _percent }}"
+        aria-label="{{ 'mallem.free_shipping_bar.progress_label' | t: percent: _percent }}"
+        data-shipping-track
+      >
+        <div
+          class="mallem-shipping-bar__fill"
+          data-shipping-fill
+          style="--shipping-percent: {{ _percent }}%"
+        ></div>
+      </div>
+    </div>
+  {%- endif -%}
+{%- endif -%}

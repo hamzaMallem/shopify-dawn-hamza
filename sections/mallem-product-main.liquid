@@ -1,0 +1,259 @@
+{%- comment -%}
+  Component: Mallem Product Main
+  Purpose: Primary product detail page layout — gallery + info in a two-column CSS Grid.
+           Orchestrates all PDP sub-components (gallery, info, accordion, sticky ATC).
+  Used in: templates/product.mallem.json (or as a section on product pages)
+
+  Features:
+  - CSS Grid: 55fr gallery | 45fr info, collapses to single column on mobile
+  - Breadcrumb navigation above the grid
+  - Renders mallem-product-gallery + mallem-product-info snippets
+  - Loads scoped CSS + deferred JS for zero render-blocking
+  - All merchant settings exposed via schema with t: translation keys
+  - Schema blocks for accordion tabs (description, size guide, shipping, custom)
+
+  RTL: Layout uses logical grid/flex — no directional properties.
+       Gallery thumbnail rail appears on the inline-end side in RTL via the snippet.
+  Performance: CSS inlined via link[rel=stylesheet], JS loaded defer.
+               Critical image (index 0) gets loading="eager" fetchpriority="high".
+{%- endcomment -%}
+
+{%- assign product = product -%}
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+
+{{ 'mallem-product-main.css' | asset_url | stylesheet_tag }}
+
+<div
+  class="mallem-product-main mallem-product-main--ratio-{{ section.settings.image_ratio }}"
+  data-mallem-product-main
+  data-mallem-section-id="{{ section.id }}"
+>
+
+  {%- comment -%} ── Breadcrumb ────────────────────────────────────────────── {%- endcomment -%}
+  <nav
+    class="mallem-breadcrumb"
+    aria-label="{{ 'general.breadcrumbs.label' | t | default: 'Breadcrumb' }}"
+  >
+    <ol class="mallem-breadcrumb__list" role="list">
+      <li class="mallem-breadcrumb__item">
+        <a href="{{ routes.root_url }}" class="mallem-breadcrumb__link">
+          {{- 'general.breadcrumbs.home' | t | default: 'Home' -}}
+        </a>
+      </li>
+
+      {%- if collection -%}
+        <li class="mallem-breadcrumb__item" aria-hidden="true">
+          <span class="mallem-breadcrumb__separator">&#8250;</span>
+        </li>
+        <li class="mallem-breadcrumb__item">
+          <a href="{{ collection.url }}" class="mallem-breadcrumb__link">
+            {{- collection.title | escape -}}
+          </a>
+        </li>
+      {%- endif -%}
+
+      <li class="mallem-breadcrumb__item" aria-hidden="true">
+        <span class="mallem-breadcrumb__separator">&#8250;</span>
+      </li>
+      <li class="mallem-breadcrumb__item">
+        <span class="mallem-breadcrumb__current" aria-current="page">
+          {{- product.title | escape -}}
+        </span>
+      </li>
+    </ol>
+  </nav>
+
+  {%- comment -%} ── Two-column product grid ───────────────────────────────── {%- endcomment -%}
+  <div class="mallem-product-main__grid">
+
+    {%- comment -%} Gallery column {%- endcomment -%}
+    <div class="mallem-product-main__gallery-col">
+      {%- render 'mallem-product-gallery',
+        product: product,
+        section: section,
+        current_variant: current_variant
+      -%}
+    </div>
+
+    {%- comment -%} Info column {%- endcomment -%}
+    <div class="mallem-product-main__info-col">
+      {%- render 'mallem-product-info',
+        product: product,
+        section: section,
+        current_variant: current_variant
+      -%}
+    </div>
+
+  </div><!-- /.mallem-product-main__grid -->
+
+</div><!-- /.mallem-product-main -->
+
+<script src="{{ 'mallem-product-main.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "t:sections.mallem_product_main.name",
+  "tag": "section",
+  "class": "mallem-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.mallem_product_main.settings.header_gallery.content"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "t:sections.mallem_product_main.settings.image_ratio.label",
+      "options": [
+        { "value": "square",    "label": "t:sections.mallem_product_main.settings.image_ratio.options.square" },
+        { "value": "portrait",  "label": "t:sections.mallem_product_main.settings.image_ratio.options.portrait" },
+        { "value": "landscape", "label": "t:sections.mallem_product_main.settings.image_ratio.options.landscape" }
+      ],
+      "default": "portrait"
+    },
+    {
+      "type": "select",
+      "id": "gallery_thumbnails_position",
+      "label": "t:sections.mallem_product_main.settings.gallery_thumbnails_position.label",
+      "options": [
+        { "value": "left",   "label": "t:sections.mallem_product_main.settings.gallery_thumbnails_position.options.left" },
+        { "value": "bottom", "label": "t:sections.mallem_product_main.settings.gallery_thumbnails_position.options.bottom" },
+        { "value": "hidden", "label": "t:sections.mallem_product_main.settings.gallery_thumbnails_position.options.hidden" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_zoom",
+      "label": "t:sections.mallem_product_main.settings.enable_zoom.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_product_main.settings.header_product_info.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "t:sections.mallem_product_main.settings.show_vendor.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "t:sections.mallem_product_main.settings.show_rating.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_product_main.settings.header_sticky_atc.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_sticky_atc",
+      "label": "t:sections.mallem_product_main.settings.enable_sticky_atc.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_product_main.settings.header_trust.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cod_badge",
+      "label": "t:sections.mallem_product_main.settings.show_cod_badge.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_product_main.settings.header_stock.content"
+    },
+    {
+      "type": "number",
+      "id": "stock_low_threshold",
+      "label": "t:sections.mallem_product_main.settings.stock_low_threshold.label",
+      "info": "t:sections.mallem_product_main.settings.stock_low_threshold.info",
+      "default": 5
+    },
+    {
+      "type": "number",
+      "id": "stock_medium_threshold",
+      "label": "t:sections.mallem_product_main.settings.stock_medium_threshold.label",
+      "info": "t:sections.mallem_product_main.settings.stock_medium_threshold.info",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "t:sections.mallem_product_main.settings.header_shipping.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_free_shipping_threshold",
+      "label": "t:sections.mallem_product_main.settings.show_free_shipping_threshold.label",
+      "default": true
+    },
+    {
+      "type": "number",
+      "id": "free_shipping_amount",
+      "label": "t:sections.mallem_product_main.settings.free_shipping_amount.label",
+      "default": 500
+    }
+  ],
+  "blocks": [
+    {
+      "type": "description_tab",
+      "name": "t:sections.mallem_product_main.blocks.description_tab.name",
+      "limit": 1
+    },
+    {
+      "type": "size_guide_tab",
+      "name": "t:sections.mallem_product_main.blocks.size_guide_tab.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "size_content",
+          "label": "t:sections.mallem_product_main.blocks.size_guide_tab.size_content.label"
+        }
+      ]
+    },
+    {
+      "type": "shipping_tab",
+      "name": "t:sections.mallem_product_main.blocks.shipping_tab.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "shipping_content",
+          "label": "t:sections.mallem_product_main.blocks.shipping_tab.shipping_content.label"
+        }
+      ]
+    },
+    {
+      "type": "custom_tab",
+      "name": "t:sections.mallem_product_main.blocks.custom_tab.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "custom_title",
+          "label": "t:sections.mallem_product_main.blocks.custom_tab.custom_title.label"
+        },
+        {
+          "type": "richtext",
+          "id": "custom_content",
+          "label": "t:sections.mallem_product_main.blocks.custom_tab.custom_content.label"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.mallem_product_main.presets.name",
+      "blocks": [
+        { "type": "description_tab" },
+        { "type": "shipping_tab" }
+      ]
+    }
+  ]
+}
+{% endschema %}

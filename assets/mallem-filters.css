@@ -1,0 +1,875 @@
+/*
+  Component: Collection Filters
+  Purpose: Styles for collection page — grid, sidebar, filter drawer, active pills, load more.
+
+  RTL:
+    Zero left/right values used. All spacing via margin-inline / padding-inline.
+    Sidebar position uses inset-inline-start (auto-flips in RTL).
+    Drawer panel slides from inset-inline-start on tablet, from block-end on mobile.
+
+  Performance:
+    contain: layout style on grid — filter changes don't repaint ancestor elements.
+    CSS transitions only on elements that animate (drawer panel, active filter pills).
+    will-change omitted — drawer opens infrequently; no continuous animation.
+    Skeleton via CSS gradient — zero JS, no layout shift.
+
+  Breakpoints:
+    < 750px   mobile: drawer slides from bottom; sort shown inside drawer
+    750–989px tablet: drawer slides from inline-start; sidebar hidden
+    ≥ 990px   desktop: sidebar visible; drawer hidden
+*/
+
+/* ============================================================
+   SCROLL LOCK (applied to <body> while drawer open)
+   ============================================================ */
+
+.mallem-scroll-lock {
+  overflow: hidden;
+}
+
+/* ============================================================
+   COLLECTION WRAPPER
+   ============================================================ */
+
+.mallem-collection {
+  padding-block: 2rem;
+  padding-inline: var(--page-width-padding, 1.5rem);
+  max-inline-size: var(--page-width, 1400px);
+  margin-inline: auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.mallem-collection__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-block-end: 1rem;
+}
+
+.mallem-collection__title {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  margin: 0;
+}
+
+.mallem-collection__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Filter toggle button — visible only below 990px */
+.mallem-collection__filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  appearance: none;
+  background: transparent;
+  border: 1.5px solid rgba(0 0 0 / 0.2);
+  border-radius: 4px;
+  padding-block: 0.5rem;
+  padding-inline: 0.875rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+}
+
+@media (hover: hover) {
+  .mallem-collection__filter-toggle:hover {
+    border-color: rgba(0 0 0 / 0.5);
+  }
+}
+
+.mallem-collection__filter-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Hidden on desktop — sidebar replaces it */
+@media screen and (min-width: 990px) {
+  .mallem-collection__filter-toggle {
+    display: none;
+  }
+}
+
+.mallem-collection__filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 18px;
+  block-size: 18px;
+  border-radius: 50%;
+  background: currentColor;
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  padding-inline: 3px;
+  /* WHY invert: badge inherits button text color; invert makes text readable on filled bg */
+  filter: invert(1);
+}
+
+/* Sort select */
+.mallem-collection__sort-wrapper {
+  position: relative;
+}
+
+.mallem-collection__sort-select {
+  appearance: none;
+  background: transparent;
+  border: 1.5px solid rgba(0 0 0 / 0.2);
+  border-radius: 4px;
+  padding-block: 0.5rem;
+  padding-inline: 0.875rem 2rem;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center; /* intentional: SVG arrow always trails */
+}
+
+[dir="rtl"] .mallem-collection__sort-select {
+  background-position: left 0.625rem center;
+}
+
+.mallem-collection__sort-select:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Product count */
+.mallem-collection__count {
+  font-size: 0.8125rem;
+  color: rgba(0 0 0 / 0.55);
+  margin-block: 0 0.75rem;
+}
+
+/* ============================================================
+   BODY: sidebar + main
+   ============================================================ */
+
+.mallem-collection__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+/* ============================================================
+   SIDEBAR (desktop only)
+   ============================================================ */
+
+.mallem-collection__sidebar {
+  display: none; /* hidden on mobile by default */
+}
+
+@media screen and (min-width: 990px) {
+  .mallem-collection__sidebar {
+    display: block;
+    flex-shrink: 0;
+    inline-size: 280px;
+    /* WHY sticky: sidebar stays visible as user scrolls through products */
+    position: sticky;
+    inset-block-start: calc(var(--header-height, 80px) + 1rem);
+    max-block-size: calc(100vh - var(--header-height, 80px) - 2rem);
+    overflow-y: auto;
+    /* Hide scrollbar visually but keep scrollable */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0 0 0 / 0.2) transparent;
+  }
+}
+
+.mallem-collection__main {
+  flex: 1;
+  min-inline-size: 0; /* prevent flex blowout */
+}
+
+/* ============================================================
+   PRODUCT GRID
+   WHY contain: layout style — grid is isolated so filter-triggered
+   repaints don't propagate to sidebar or header.
+   ============================================================ */
+
+.mallem-collection__grid {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 1.5rem 1rem;
+  contain: layout style;
+}
+
+/* Mobile columns */
+.mallem-collection__grid--mobile-1 {
+  grid-template-columns: 1fr;
+}
+.mallem-collection__grid--mobile-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Desktop columns */
+@media screen and (min-width: 750px) {
+  .mallem-collection__grid--desktop-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mallem-collection__grid--desktop-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .mallem-collection__grid--desktop-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media screen and (min-width: 990px) {
+  .mallem-collection__grid--desktop-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mallem-collection__grid--desktop-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .mallem-collection__grid--desktop-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Loading state (during AJAX fetch) ─────────────────────── */
+
+.mallem-collection--loading .mallem-collection__grid {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+
+.mallem-collection__empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding-block: 3rem;
+  list-style: none;
+}
+
+.mallem-collection__clear-link {
+  display: inline-block;
+  margin-block-start: 0.75rem;
+  font-size: 0.875rem;
+  text-decoration: underline;
+}
+
+/* ============================================================
+   ACTIVE FILTER PILLS
+   ============================================================ */
+
+.mallem-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-end: 1rem;
+}
+
+.mallem-active-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(0 0 0 / 0.06);
+  border-radius: 100px;
+  padding-block: 0.25rem;
+  padding-inline: 0.75rem 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.mallem-active-filter__label {
+  /* text only, no interactivity */
+}
+
+.mallem-active-filter__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: 50%;
+  background: rgba(0 0 0 / 0.12);
+  color: inherit;
+  text-decoration: none;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+@media (hover: hover) {
+  .mallem-active-filter__remove:hover {
+    background: rgba(0 0 0 / 0.25);
+  }
+}
+
+.mallem-active-filters__clear-all {
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  padding-inline-start: 0.25rem;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   FILTER SIDEBAR FORM
+   ============================================================ */
+
+.mallem-filter-sidebar {
+  /* form reset */
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mallem-filter-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: 1.25rem;
+}
+
+.mallem-filter-sidebar__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.mallem-filter-sidebar__clear-all {
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  color: inherit;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.mallem-filter-sidebar__clear-all--hidden {
+  /* WHY visibility hidden (not display none): keeps layout stable so header doesn't jump */
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ============================================================
+   FILTER GROUP (details/summary)
+   ============================================================ */
+
+.mallem-filter-group {
+  border-block-end: 1px solid rgba(0 0 0 / 0.1);
+  padding-block: 0.875rem;
+}
+
+.mallem-filter-group:first-of-type {
+  border-block-start: 1px solid rgba(0 0 0 / 0.1);
+}
+
+.mallem-filter-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  /* Remove default marker */
+  -webkit-appearance: none;
+}
+
+.mallem-filter-group__header::-webkit-details-marker {
+  display: none;
+}
+
+.mallem-filter-group__header:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.mallem-filter-group__label {
+  flex: 1;
+}
+
+.mallem-filter-group__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 20px;
+  block-size: 20px;
+  border-radius: 50%;
+  background: currentColor;
+  color: #ffffff;
+  /* WHY invert: same technique as filter badge above */
+  filter: invert(1);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding-inline: 3px;
+}
+
+/* Chevron — rotates when open */
+.mallem-filter-group__chevron {
+  inline-size: 16px;
+  block-size: 16px;
+  flex-shrink: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mallem-filter-group[open] .mallem-filter-group__chevron {
+  transform: rotate(-180deg);
+}
+
+.mallem-filter-group__body {
+  padding-block-start: 0.75rem;
+}
+
+/* ============================================================
+   FILTER LIST (checkboxes)
+   ============================================================ */
+
+.mallem-filter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mallem-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.mallem-filter-checkbox__input {
+  /* WHY sr-only pattern: hide native but keep accessible */
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.mallem-filter-checkbox__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: 18px;
+  block-size: 18px;
+  border: 1.5px solid rgba(0 0 0 / 0.3);
+  border-radius: 3px;
+  background: #ffffff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+/* Checked state: filled box with checkmark */
+.mallem-filter-checkbox__input:checked + .mallem-filter-checkbox__box {
+  background: currentColor;
+  border-color: currentColor;
+}
+
+.mallem-filter-checkbox__input:checked + .mallem-filter-checkbox__box::after {
+  content: '';
+  inline-size: 10px;
+  block-size: 6px;
+  border-block-end: 2px solid #ffffff;
+  border-inline-start: 2px solid #ffffff;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.mallem-filter-checkbox__input:focus-visible + .mallem-filter-checkbox__box {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.mallem-filter-checkbox__input:disabled ~ .mallem-filter-checkbox__label {
+  opacity: 0.4;
+}
+
+.mallem-filter-checkbox__label {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.mallem-filter-checkbox__count {
+  opacity: 0.55;
+  font-size: 0.75rem;
+}
+
+/* ============================================================
+   PRICE RANGE FILTER
+   ============================================================ */
+
+.mallem-filter-price__inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.mallem-filter-price__field {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.mallem-filter-price__label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-block-end: 0.25rem;
+  opacity: 0.7;
+}
+
+.mallem-filter-price__input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid rgba(0 0 0 / 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.mallem-filter-price__currency {
+  padding-inline: 0.5rem;
+  font-size: 0.8125rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.mallem-filter-price__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding-block: 0.4rem;
+  padding-inline-end: 0.5rem;
+  font: inherit;
+  font-size: 0.875rem;
+  background: transparent;
+  min-inline-size: 0;
+  /* Remove number spinner */
+  -moz-appearance: textfield;
+}
+
+.mallem-filter-price__input::-webkit-outer-spin-button,
+.mallem-filter-price__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.mallem-filter-price__input-wrapper:focus-within {
+  border-color: currentColor;
+}
+
+.mallem-filter-price__separator {
+  padding-block-end: 0.4rem;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   PAGINATION / LOAD MORE
+   ============================================================ */
+
+.mallem-collection__pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-start: 2rem;
+}
+
+.mallem-collection__page-info {
+  font-size: 0.8125rem;
+  opacity: 0.6;
+  margin: 0;
+}
+
+.mallem-collection__load-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  appearance: none;
+  border: 1.5px solid rgba(0 0 0 / 0.25);
+  border-radius: 4px;
+  background: transparent;
+  padding-block: 0.75rem;
+  padding-inline: 2rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+@media (hover: hover) {
+  .mallem-collection__load-more:hover {
+    border-color: currentColor;
+    background: rgba(0 0 0 / 0.04);
+  }
+}
+
+.mallem-collection__load-more:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Spinner (visible only during load more fetch) */
+.mallem-collection__load-more-spinner {
+  display: none;
+  inline-size: 16px;
+  block-size: 16px;
+  border: 2px solid rgba(0 0 0 / 0.2);
+  border-block-start-color: currentColor;
+  border-radius: 50%;
+  animation: mallem-spin 0.6s linear infinite;
+}
+
+.mallem-collection__load-more--loading .mallem-collection__load-more-spinner {
+  display: inline-block;
+}
+
+.mallem-collection__load-more--loading [data-mallem-load-more-text] {
+  /* Keep button same width during loading */
+}
+
+@keyframes mallem-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   FILTER DRAWER
+   ============================================================ */
+
+.mallem-filter-drawer {
+  /* WHY position fixed + inset 0: covers full viewport behind panel */
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  /* display controlled by [hidden] attribute; transitions via class */
+}
+
+.mallem-filter-drawer__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0 0 0 / 0);
+  transition: background 0.3s ease;
+}
+
+.mallem-filter-drawer--open .mallem-filter-drawer__overlay {
+  background: rgba(0 0 0 / 0.45);
+}
+
+/* ── Panel ── */
+
+.mallem-filter-drawer__panel {
+  position: absolute;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+
+  /* Mobile: slide from bottom */
+  inset-inline: 0;
+  inset-block-end: 0;
+  max-block-size: 90vh;
+  border-start-start-radius: 16px;
+  border-start-end-radius: 16px;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media screen and (min-width: 750px) {
+  /* Tablet: slide from inline-start */
+  .mallem-filter-drawer__panel {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    inset-block: 0;
+    inline-size: min(360px, 90vw);
+    max-block-size: 100vh;
+    border-radius: 0;
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+    transform: translateX(-100%);
+  }
+
+  [dir="rtl"] .mallem-filter-drawer__panel {
+    transform: translateX(100%);
+  }
+}
+
+.mallem-filter-drawer--open .mallem-filter-drawer__panel {
+  transform: translate(0, 0);
+}
+
+/* ── Drawer header ── */
+
+.mallem-filter-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 1rem;
+  padding-inline: 1.25rem;
+  border-block-end: 1px solid rgba(0 0 0 / 0.1);
+  flex-shrink: 0;
+}
+
+.mallem-filter-drawer__title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mallem-filter-drawer__close {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+
+@media (hover: hover) {
+  .mallem-filter-drawer__close:hover {
+    background: rgba(0 0 0 / 0.06);
+  }
+}
+
+/* ── Drawer body (scrollable) ── */
+
+.mallem-filter-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding-inline: 1.25rem;
+  padding-block: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0 0 0 / 0.2) transparent;
+}
+
+/* Sort section inside drawer */
+.mallem-filter-drawer__sort {
+  margin-block-end: 1.25rem;
+  padding-block-end: 1.25rem;
+  border-block-end: 1px solid rgba(0 0 0 / 0.1);
+}
+
+.mallem-filter-drawer__section-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-block: 0 0.75rem;
+}
+
+.mallem-filter-drawer__sort-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mallem-filter-drawer__sort-option {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.mallem-filter-drawer__sort-option input[type="radio"] {
+  accent-color: currentColor;
+  inline-size: 16px;
+  block-size: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* ── Drawer footer ── */
+
+.mallem-filter-drawer__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 1rem;
+  padding-inline: 1.25rem;
+  border-block-start: 1px solid rgba(0 0 0 / 0.1);
+  flex-shrink: 0;
+}
+
+.mallem-filter-drawer__clear {
+  flex: 1;
+  text-align: center;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  color: inherit;
+}
+
+.mallem-filter-drawer__apply {
+  flex: 2;
+  appearance: none;
+  background: #1a1a1a;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding-block: 0.75rem;
+  padding-inline: 1.5rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+@media (hover: hover) {
+  .mallem-filter-drawer__apply:hover {
+    background: #333333;
+  }
+}
+
+.mallem-filter-drawer__apply:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ── Drawer filters container ── */
+
+.mallem-filter-drawer__filters {
+  /* form reset */
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .mallem-filter-drawer__panel,
+  .mallem-filter-drawer__overlay,
+  .mallem-collection__load-more,
+  .mallem-filter-checkbox__box,
+  .mallem-filter-group__chevron {
+    transition: none;
+    animation: none;
+  }
+
+  .mallem-collection__load-more-spinner {
+    animation: none;
+    border-block-start-color: currentColor;
+    opacity: 0.6;
+  }
+}

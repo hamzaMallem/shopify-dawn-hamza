@@ -1,0 +1,78 @@
+{%- comment -%}
+  Component: Mallem Product Accordion
+  Purpose: Expandable content blocks (description, size guide, shipping, custom).
+           WHY native <details>: zero JS, screen-reader native, keyboard accessible,
+           no transition polyfill needed, Shopify theme inspector compatible.
+  Used in: snippets/mallem-product-info.liquid
+
+  Features:
+  - Native <details><summary> — works with JS disabled
+  - First block pre-opened via `open` attribute
+  - Inline SVG chevron rotates 180° via CSS [open] selector — no JS
+  - Block types: description_tab, size_guide_tab, shipping_tab, custom_tab
+  - description_tab outputs product.description (Shopify rich text)
+  - Other blocks output their richtext schema setting
+
+  RTL: Chevron positioned inline-end via CSS logical. Summary flex row-reverse aware.
+  Performance: CSS-only expand animation (max-height transition).
+{%- endcomment -%}
+
+{%- if blocks.size > 0 -%}
+  <div class="mallem-accordion" data-mallem-accordion>
+
+    {%- for block in blocks -%}
+      {%- liquid
+        case block.type
+          when 'description_tab'
+            assign tab_title   = 'mallem.product.accordion.description_tab' | t
+            assign tab_content = product.description
+          when 'size_guide_tab'
+            assign tab_title   = 'mallem.product.accordion.size_guide_tab' | t
+            assign tab_content = block.settings.size_content
+          when 'shipping_tab'
+            assign tab_title   = 'mallem.product.accordion.shipping_tab' | t
+            assign tab_content = block.settings.shipping_content
+          when 'custom_tab'
+            assign tab_title   = block.settings.custom_title | default: 'Tab'
+            assign tab_content = block.settings.custom_content
+          else
+            assign tab_title   = block.type
+            assign tab_content = ''
+        endcase
+      -%}
+
+      {%- if tab_content != blank or block.type == 'description_tab' -%}
+        <details
+          class="mallem-accordion__item"
+          data-mallem-accordion-item
+          {{ block.shopify_attributes }}
+          {%- if forloop.first %} open{%- endif %}
+        >
+          <summary class="mallem-accordion__summary" data-mallem-accordion-summary>
+            <span class="mallem-accordion__title">{{ tab_title | escape }}</span>
+            <span class="mallem-accordion__chevron" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" focusable="false">
+                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </summary>
+
+          <div class="mallem-accordion__body">
+            {%- if block.type == 'description_tab' -%}
+              <div class="mallem-accordion__content mallem-rte">
+                {{- product.description -}}
+              </div>
+            {%- else -%}
+              <div class="mallem-accordion__content mallem-rte">
+                {{- tab_content -}}
+              </div>
+            {%- endif -%}
+          </div>
+
+        </details>
+      {%- endif -%}
+
+    {%- endfor -%}
+
+  </div><!-- /.mallem-accordion -->
+{%- endif -%}

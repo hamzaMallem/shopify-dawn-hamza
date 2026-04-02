@@ -1,0 +1,230 @@
+{%- comment -%}
+  Component: mallem-swatches
+  Purpose: Render variant option swatches (color circles or label pills) on product cards
+  Used in: snippets/mallem-product-card.liquid (after title, before price)
+
+  Features:
+  - Auto-detects color vs label mode from option name (color/colour/لون/couleur/farbe)
+  - Color resolution: metafield JSON (server-side, exact + lowercase key) → CSS named-color fallback
+  - Overflow truncation: show_count visible, rest hidden via .mallem-swatch--hidden CSS class
+  - All variant image URLs pre-computed in Liquid — JS needs zero extra fetches at runtime
+  - Active swatch tracks selected variant; sold-out swatches remain focusable (aria-disabled)
+
+  Parameters:
+  - product            {Object}  Required — Shopify product object
+  - option_name        {String}  Optional — Option name to render (default: product.options[0])
+  - swatch_type        {String}  Optional — "color" | "label" | "auto" (default: "auto")
+  - show_count         {Number}  Optional — Max visible swatches before overflow (default: 5)
+  - enable_hover_image {Boolean} Optional — Pass-through flag for JS hover preview (default: true)
+
+  Metafield for accurate color swatches (optional but recommended):
+  - Namespace: mallem | Key: swatch_colors | Type: JSON
+  - Format: {"Black": "#1a1a1a", "Red": "#c8102e", "Navy": "#001f5b"}
+
+  RTL: flex-wrap with logical properties handles RTL direction automatically.
+  Performance: Image URLs and srcsets pre-built in Liquid; no /products.json calls at runtime.
+{%- endcomment -%}
+
+{%- liquid
+  comment
+    WHY allow_false on boolean: Liquid's | default filter treats `false` as falsy and
+    would replace it with the default value — allow_false: true prevents this bug.
+  endcomment
+  assign option_name        = option_name | default: product.options[0]
+  assign swatch_type        = swatch_type | default: 'auto'
+  assign show_count         = show_count  | default: 5
+  assign enable_hover_image = enable_hover_image | default: true, allow_false: true
+
+  comment
+    Find the option object by name to get its .values array and position index.
+    Falling back to first option is defensive — handles typos in option_name param.
+  endcomment
+  assign option_to_render = nil
+  assign option_index     = 0
+  for opt in product.options_with_values
+    if opt.name == option_name
+      assign option_to_render = opt
+      assign option_index     = forloop.index0
+      break
+    endif
+  endfor
+
+  if option_to_render == nil
+    assign option_to_render = product.options_with_values[0]
+    assign option_index     = 0
+  endif
+
+  comment
+    WHY auto-detect swatch type: Merchants should not need to pass swatch_type manually.
+    We infer from option name. Covering Arabic (لون), French (couleur), German (farbe)
+    and both EN spellings ensures MENA and international merchants work out of the box.
+  endcomment
+  if swatch_type == 'auto'
+    assign _opt_lower = option_to_render.name | downcase
+    if _opt_lower contains 'color' or _opt_lower contains 'colour' or _opt_lower contains 'لون' or _opt_lower contains 'couleur' or _opt_lower contains 'farbe'
+      assign resolved_type = 'color'
+    else
+      assign resolved_type = 'label'
+    endif
+  else
+    assign resolved_type = swatch_type
+  endif
+
+  comment
+    WHY .value on JSON metafield: Shopify returns the raw JSON string unless you call .value,
+    which gives the already-parsed object. Key lookup then works with bracket notation.
+    Merchants configure this once; every product with the metafield gets correct color dots.
+  endcomment
+  assign swatch_colors = product.metafields.mallem.swatch_colors.value
+
+  comment
+    Pre-compute overflow count before the loop so the "+N more" indicator is accurate.
+  endcomment
+  assign total_values   = option_to_render.values.size
+  assign overflow_count = 0
+  if total_values > show_count
+    assign overflow_count = total_values | minus: show_count
+  endif
+-%}
+
+{%- if option_to_render != nil and total_values > 1 -%}
+  <div
+    class="mallem-swatches mallem-swatches--{{ resolved_type }}"
+    data-mallem-swatches-wrapper
+    data-mallem-product-id="{{ product.id }}"
+    data-mallem-option-index="{{ option_index }}"
+    data-mallem-swatch-type="{{ resolved_type }}"
+    data-mallem-enable-hover="{{ enable_hover_image }}"
+    aria-label="{{ 'mallem.swatches.select_option' | t: option: option_to_render.name | escape }}"
+    role="group"
+  >
+    {%- for value in option_to_render.values -%}
+      {%- liquid
+        comment
+          Find the FIRST variant whose option at option_index matches the current value.
+          variant.options[] is zero-indexed and maps directly to option_index.
+          WHY first-match break: One variant per swatch is enough for image + availability.
+          Other variants sharing this option value don't affect the card display.
+        endcomment
+        assign matched_variant = nil
+        for variant in product.variants
+          if variant.options[option_index] == value
+            assign matched_variant = variant
+            break
+          endif
+        endfor
+
+        comment
+          WHY nil guard on availability: product data can be incomplete on proxy-loaded
+          recommendations; nil-safe check prevents Liquid exceptions.
+        endcomment
+        assign is_available = false
+        if matched_variant != nil and matched_variant.available
+          assign is_available = true
+        endif
+
+        comment
+          WHY prefer variant.featured_image over product.featured_media:
+          variant.featured_image is the image specifically shot for this color/style —
+          showing it on hover converts better than a generic product hero image.
+          Fallback to product.featured_media ensures we always have a URL to pass to JS.
+        endcomment
+        assign _variant_img = nil
+        if matched_variant != nil and matched_variant.featured_image != nil
+          assign _variant_img = matched_variant.featured_image
+        elsif product.featured_media != nil
+          assign _variant_img = product.featured_media
+        endif
+
+        comment
+          WHY render ALL swatches (including overflow) with a CSS hidden class:
+          JS needs all variant data (image URL, variant ID, availability) in the DOM.
+          Completely skipping overflow swatches would require an AJAX fetch to get
+          that data later — harmful to performance and complexity.
+          CSS display:none via .mallem-swatch--hidden keeps them invisible but accessible.
+        endcomment
+        assign is_hidden = false
+        if overflow_count > 0 and forloop.index > show_count
+          assign is_hidden = true
+        endif
+      -%}
+
+      {%- comment -%} Build srcset once — reused in data-image-srcset attribute below. {%- endcomment -%}
+      {%- if _variant_img -%}
+        {%- capture _srcset -%}{{ _variant_img | image_url: width: 300 }} 300w, {{ _variant_img | image_url: width: 600 }} 600w, {{ _variant_img | image_url: width: 900 }} 900w{%- endcapture -%}
+        {%- assign _img_url = _variant_img | image_url: width: 600 -%}
+      {%- else -%}
+        {%- assign _srcset  = '' -%}
+        {%- assign _img_url = '' -%}
+      {%- endif -%}
+
+      {%- comment -%}
+        Color resolution order (server-side, no JS needed):
+        1. Exact metafield key — as merchant typed it (e.g., "Navy")
+        2. Lowercase metafield key — forgiving capitalization (e.g., "navy")
+        3. CSS named-color fallback — works for standard English names ("black", "red")
+
+        WHY not CSS names alone: Arabic brand names ("كحلي"), color codes, or multi-word
+        names ("Coral Sand") will not parse as valid CSS colors — only metafield data helps.
+        WHY server-side resolution: Avoids client-side JSON parse cost on every page load.
+      {%- endcomment -%}
+      {%- if resolved_type == 'color' -%}
+        {%- assign _swatch_bg = '' -%}
+        {%- if swatch_colors != blank -%}
+          {%- assign _swatch_bg = swatch_colors[value] -%}
+          {%- if _swatch_bg == blank -%}
+            {%- assign _val_lower = value | downcase -%}
+            {%- assign _swatch_bg = swatch_colors[_val_lower] -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- if _swatch_bg == blank -%}
+          {%- assign _swatch_bg = value | downcase -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {%- comment -%}
+        ARIA label: "Select Black (sold out)" gives keyboard users complete information
+        in a single focus action — no need to navigate to a separate sold-out indicator.
+        WHY aria-disabled not disabled: Sold-out swatches must remain keyboard-focusable
+        so users discover the option exists. Hiding it causes surprise when it restocks.
+      {%- endcomment -%}
+      {%- capture _aria_label -%}{{ 'mallem.swatches.select_option' | t: option: value }}{%- unless is_available %} {{ 'mallem.swatches.sold_out_suffix' | t }}{%- endunless -%}{%- endcapture -%}
+
+      <button
+        type="button"
+        class="mallem-swatch mallem-swatch--{{ resolved_type }}{% if forloop.first %} mallem-swatch--active{% endif %}{% unless is_available %} mallem-swatch--sold-out{% endunless %}{% if is_hidden %} mallem-swatch--hidden{% endif %}"
+        data-mallem-swatch
+        data-variant-id="{{ matched_variant.id }}"
+        data-value="{{ value | escape }}"
+        data-available="{{ is_available }}"
+        {% if _img_url != '' %}data-image-url="{{ _img_url }}"{% endif %}
+        {% if _srcset != '' %}data-image-srcset="{{ _srcset | escape }}"{% endif %}
+        {% if resolved_type == 'color' %}style="--swatch-color: {{ _swatch_bg | escape }}"{% endif %}
+        aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}"
+        aria-label="{{ _aria_label | strip | escape }}"
+        {% unless is_available %}aria-disabled="true"{% endunless %}
+      >
+        {%- comment -%}
+          Label swatches render their text content; color swatches are purely visual
+          (rendered as a circle via CSS ::before on the button).
+          WHY no text in color swatch: The accessible name comes from aria-label,
+          so an empty button is intentional and correct for screen readers.
+        {%- endcomment -%}
+        {%- if resolved_type == 'label' -%}
+          <span class="mallem-swatch__label">{{- value -}}</span>
+        {%- endif -%}
+      </button>
+    {%- endfor -%}
+
+    {%- if overflow_count > 0 -%}
+      {%- comment -%}
+        WHY aria-hidden: "+3 more" is decorative for sighted users only.
+        Screen readers can discover all swatch buttons by navigating through them.
+        This indicator only signals to sighted users that more options exist.
+      {%- endcomment -%}
+      <span class="mallem-swatches__more" aria-hidden="true">
+        + {{ 'mallem.swatches.more' | t: count: overflow_count }}
+      </span>
+    {%- endif -%}
+  </div>
+{%- endif -%}

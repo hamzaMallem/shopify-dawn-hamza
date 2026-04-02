@@ -1,0 +1,62 @@
+{%- comment -%}
+  Component: Mallem Product Stock
+  Purpose: Server-side renders initial stock state; JS re-evaluates on variant change.
+           Shows urgency signals (low/medium stock) to lift conversion rates.
+           WHY: "Only 3 left" outperforms any badge — scarcity works.
+  Used in: snippets/mallem-product-info.liquid
+
+  Features:
+  - Thresholds read from section settings → data attributes → JS reads same attrs
+  - Three visible states: low (red), medium (orange), out (muted/disabled)
+  - qty > medium threshold → renders nothing (no noise when stock is healthy)
+  - inventory_policy = 'continue' means Shopify allows selling when OOS → treated as in-stock
+  - JS class: MallemStockCounter listens for mallem:variant:changed and re-evaluates
+
+  RTL: No directional properties. Dot + text laid out via flex logical.
+  Performance: Pure HTML/CSS initial state. JS only adds/removes classes.
+{%- endcomment -%}
+
+{%- liquid
+  assign current_variant    = current_variant | default: product.selected_or_first_available_variant
+  assign low_threshold      = section.settings.stock_low_threshold    | default: 5
+  assign medium_threshold   = section.settings.stock_medium_threshold | default: 20
+  assign qty                = current_variant.inventory_quantity | default: 0
+  assign policy             = current_variant.inventory_policy
+
+  # Determine initial CSS state class
+  if policy == 'continue'
+    assign stock_class = ''
+  elsif qty <= 0
+    assign stock_class = 'mallem-stock--out'
+  elsif qty <= low_threshold
+    assign stock_class = 'mallem-stock--low'
+  elsif qty <= medium_threshold
+    assign stock_class = 'mallem-stock--medium'
+  else
+    assign stock_class = ''
+  endif
+-%}
+
+<div
+  class="mallem-stock {{ stock_class }}"
+  data-mallem-stock-display
+  data-mallem-inventory="{{ qty }}"
+  data-mallem-policy="{{ policy }}"
+  data-mallem-low-threshold="{{ low_threshold }}"
+  data-mallem-medium-threshold="{{ medium_threshold }}"
+  {%- if stock_class == '' %} hidden{%- endif %}
+>
+  <span class="mallem-stock__dot" aria-hidden="true"></span>
+
+  <span class="mallem-stock__text">
+    {%- if policy == 'continue' -%}
+      {%- comment -%} Continue-selling: never show OOS {%- endcomment -%}
+    {%- elsif qty <= 0 -%}
+      {{- 'mallem.product.stock.out' | t -}}
+    {%- elsif qty <= low_threshold -%}
+      {{- 'mallem.product.stock.low' | t: count: qty -}}
+    {%- elsif qty <= medium_threshold -%}
+      {{- 'mallem.product.stock.medium' | t -}}
+    {%- endif -%}
+  </span>
+</div>

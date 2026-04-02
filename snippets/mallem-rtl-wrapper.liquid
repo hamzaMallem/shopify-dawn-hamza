@@ -1,85 +1,44 @@
 {%- comment -%}
-  ================================================================================
-  MALLEM RTL WRAPPER
-  ================================================================================
+  Component: mallem-rtl-wrapper
+  Purpose: Controls RTL/LTR direction for entire theme
+  Used in: layout/theme.liquid (<html> tag)
 
-  CRITICAL: Shopify-native RTL detection for Arabic/MENA markets
+  Features:
+  - Merchant-controlled RTL toggle via theme settings
+  - Sets dir="rtl" or dir="ltr" on <html>
+  - Sets lang="ar" when RTL enabled (Arabic default for MENA markets)
+  - Outputs direction for use in body class
 
-  WHY this snippet exists:
-  - Shopify controls lang="{{ request.locale.iso_code }}" (layout/theme.liquid)
-  - This snippet adds dir="rtl" for RTL languages
-  - CSS logical properties in theme respond to dir attribute
-  - NO JavaScript involved - pure Shopify Liquid
-
-  HOW it works:
-  1. Shopify user selects language (e.g., العربية)
-  2. Shopify POSTs to /localization
-  3. Shopify reloads page with request.locale.iso_code = "ar"
-  4. This snippet outputs dir="rtl" class="mallem-rtl"
-  5. CSS activates RTL styles automatically
-
-  RTL LANGUAGES SUPPORTED:
-  - Arabic (ar) - Primary target for mallem theme
-  - Hebrew (he)
-  - Farsi/Persian (fa)
-  - Urdu (ur)
-
-  OUTPUT EXAMPLES:
-  - Arabic:  dir="rtl" class="mallem-rtl"
-  - English: dir="ltr" class="mallem-ltr"
-
-  USAGE:
-  <html lang="{{ request.locale.iso_code }}" {% render 'mallem-rtl-wrapper' %}>
-
-  ================================================================================
+  RTL: Core RTL control mechanism
+  Performance: Zero JavaScript, pure Liquid logic
 {%- endcomment -%}
 
 {%- liquid
   comment
-    Extract primary language code from locale
-    Example: "ar-SA" becomes "ar", "en-US" becomes "en"
-    WHY: Regional variants share same directionality
+    Check theme setting for RTL enablement
+    WHY checkbox: Simple merchant control, no complex logic
   endcomment
-  assign current_locale = request.locale.iso_code | split: '-' | first | downcase
+  assign rtl_enabled = settings.mallem_enable_rtl
 
   comment
-    Define RTL language codes (MENA + Middle East languages)
-    WHY these four: Cover 99% of RTL e-commerce markets
-    - ar (Arabic): Morocco, Egypt, Saudi Arabia, UAE, etc.
-    - he (Hebrew): Israel
-    - fa (Persian): Iran
-    - ur (Urdu): Pakistan
+    Set HTML attributes based on RTL setting
+    WHY lang="ar": Default to Arabic for MENA markets when RTL enabled
+    WHY keep Shopify locale when disabled: Preserve multi-language support
   endcomment
-  assign rtl_languages = 'ar,he,fa,ur' | split: ','
-
-  comment
-    Check if current locale is RTL
-    WHY simple loop: Liquid has no "contains" for arrays
-  endcomment
-  assign is_rtl = false
-  for rtl_lang in rtl_languages
-    if current_locale == rtl_lang
-      assign is_rtl = true
-      break
-    endif
-  endfor
-
-  comment
-    Set direction and CSS class
-    WHY separate class: Allows CSS hooks for RTL-specific styling
-    Example: .mallem-rtl .product-card { ... }
-  endcomment
-  if is_rtl
+  if rtl_enabled
     assign direction = 'rtl'
+    assign html_lang = 'ar'
     assign direction_class = 'mallem-rtl'
   else
     assign direction = 'ltr'
+    assign html_lang = request.locale.iso_code
     assign direction_class = 'mallem-ltr'
   endif
 -%}
 
 {%- comment -%}
   OUTPUT: HTML attributes for <html> tag
-  WHY no line breaks: Clean attribute output in source
+  Note: direction_class is captured for body class via assign
+  Only output dir and lang here to avoid duplicate class attributes
 {%- endcomment -%}
-dir="{{ direction }}" class="{{ direction_class }}"
+dir="{{ direction }}" lang="{{ html_lang }}" data-direction="{{ direction_class }}"

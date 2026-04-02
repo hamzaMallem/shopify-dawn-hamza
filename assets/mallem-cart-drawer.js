@@ -314,6 +314,12 @@ class MallemCartDrawer extends HTMLElement {
     if (this.isOpen) {
       this.setupFocusTrap();
     }
+
+    // WHY: Notify dependent components (e.g. free shipping bar) of cart state
+    document.dispatchEvent(new CustomEvent('mallem:cart:updated', {
+      bubbles: false,
+      detail: { total_price: cart.total_price, item_count: cart.item_count }
+    }));
   }
 
   renderItems(items) {

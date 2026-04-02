@@ -1,0 +1,253 @@
+/*
+  Component: Variant Swatches
+  Purpose: Color circles and label pills for product variant selection on cards.
+
+  States:
+    .mallem-swatch--active      Currently selected / aria-pressed="true"
+    .mallem-swatch--sold-out    Variant unavailable — visible but muted with diagonal slash
+
+  Types:
+    .mallem-swatch--color       28px circle; color from --swatch-color CSS custom property
+    .mallem-swatch--label       Pill with text; 11px uppercase, min 32px wide
+
+  RTL:
+    flex-wrap direction is automatic because `dir` is on <html>.
+    All spacing uses padding-inline / margin-inline — zero left/right values.
+
+  Performance:
+    44px touch target via min dimensions + flexbox centering; visual is ::before pseudo.
+    ::before and ::after don't affect layout so GPU-composited transitions stay cheap.
+    will-change avoided intentionally — swatches are not in continuous animation.
+
+  Touch targets:
+    Buttons are min 44×44px. Visual circle/pill is smaller, centered via flexbox.
+    This satisfies WCAG 2.5.5 without inflating the visual swatch size.
+*/
+
+/* ============================================================
+   WRAPPER
+   ============================================================ */
+
+.mallem-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;                    /* gap handled per swatch type below */
+  margin-block-start: 0.5rem;
+  margin-block-end: 0.25rem;
+}
+
+/* ============================================================
+   BASE SWATCH BUTTON
+   ============================================================ */
+
+.mallem-swatch {
+  /* WHY reset: <button> carries browser default padding/border that breaks sizing */
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+
+  /* WHY relative: Needed so ::before (visual) and ::after (sold-out slash, active ring)
+     can be absolutely positioned relative to the 44px touch target */
+  position: relative;
+
+  /* 44px minimum touch target — meets WCAG 2.5.5 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+
+  /* WHY outline: not auto for swatch button: we style focus-visible manually
+     below so it surrounds the visual swatch, not the full 44px button */
+  outline: none;
+}
+
+.mallem-swatch:focus-visible {
+  /* Visible keyboard focus ring on the button itself as a last resort */
+  outline: 2px solid currentColor;
+  outline-offset: -6px;
+  border-radius: 50%;
+}
+
+/* ============================================================
+   COLOR SWATCH
+   ============================================================ */
+
+.mallem-swatches--color {
+  gap: 0;                    /* negative margin trick not needed; inline-flex fits */
+}
+
+.mallem-swatch--color {
+  border-radius: 50%;        /* Makes focus-visible outline follow circle shape */
+}
+
+/* Visual circle — ::before keeps it separate from the 44px touch target */
+.mallem-swatch--color::before {
+  content: '';
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: 50%;
+  background-color: var(--swatch-color, #cccccc);
+
+  /* WHY subtle border: defines edge of very light swatches (white, cream) on white BG */
+  border: 1.5px solid rgba(0 0 0 / 0.12);
+
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover: slight scale tells the user the circle is interactive */
+@media (hover: hover) {
+  .mallem-swatch--color:hover::before {
+    transform: scale(1.1);
+  }
+}
+
+/* Selected ring: 2px white gap + 2px dark ring around the 28px circle.
+   WHY box-shadow not outline: outline applies to the 44px button bounding box;
+   box-shadow on ::before correctly rings the 28px visual circle. */
+.mallem-swatch--color.mallem-swatch--active::before {
+  box-shadow: 0 0 0 2px #ffffff,
+              0 0 0 4px rgba(0 0 0 / 0.85);
+}
+
+/* ============================================================
+   LABEL SWATCH
+   ============================================================ */
+
+.mallem-swatches--label {
+  gap: 0.25rem 0.25rem;
+}
+
+.mallem-swatch--label {
+  border-radius: 4px;
+  min-block-size: 44px;
+  min-inline-size: 44px;
+}
+
+.mallem-swatch__label {
+  display: block;
+  padding-inline: 0.625rem;  /* 10px */
+  min-inline-size: 32px;
+  font-size: 0.6875rem;      /* 11px */
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+
+  /* Visual pill border */
+  border: 1.5px solid rgba(0 0 0 / 0.2);
+  border-radius: 4px;
+  padding-block: 0.35rem;
+
+  transition: border-color 0.15s ease,
+              font-weight   0.15s ease;
+}
+
+@media (hover: hover) {
+  .mallem-swatch--label:hover .mallem-swatch__label {
+    border-color: rgba(0 0 0 / 0.6);
+  }
+}
+
+.mallem-swatch--label.mallem-swatch--active .mallem-swatch__label {
+  border-color: currentColor;
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.mallem-swatch--label:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   SOLD-OUT STATE
+   WHY opacity not display:none: Swatch must remain visible so customers know
+   the variant exists — they just can't add it. Hiding it causes confusion.
+   WHY aria-disabled not disabled: Keyboard users can still focus and learn
+   about the out-of-stock option.
+   ============================================================ */
+
+.mallem-swatch--sold-out {
+  opacity: 0.45;
+}
+
+/* Diagonal slash overlay using CSS gradient — works on both circle and pill shapes.
+   WHY gradient not border: Works on any aspect ratio without JS dimension knowledge.
+   Renders correctly in both LTR and RTL without logical-property adjustments. */
+.mallem-swatch--sold-out::after {
+  content: '';
+  position: absolute;
+  /* Center the overlay relative to the ::before visual (28px × 28px) */
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: 50%;        /* Clip diagonal to circle for color swatches */
+  background: linear-gradient(
+    135deg,
+    transparent                    calc(50% - 0.75px),
+    rgba(0 0 0 / 0.55)             calc(50% - 0.75px) calc(50% + 0.75px),
+    transparent                    calc(50% + 0.75px)
+  );
+  pointer-events: none;
+}
+
+/* For label swatches: unclip the diagonal so it crosses the pill */
+.mallem-swatch--label.mallem-swatch--sold-out::after {
+  border-radius: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* ============================================================
+   OVERFLOW INDICATOR: "+3 more"
+   ============================================================ */
+
+.mallem-swatches__more {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline-start: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--mallem-card-text-muted, #666666);
+  white-space: nowrap;
+
+  /* WHY pointer-events none: This is informational only; no click target */
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ============================================================
+   OVERFLOW HIDDEN SWATCHES
+   WHY display:none not visibility:hidden: The element must be fully removed from
+   layout so it doesn't take up space in the flex row. visibility:hidden preserves
+   space; display:none collapses it correctly.
+   WHY not removed from DOM: JS reads variant data (image URL, variant ID, availability)
+   from all swatches, including overflow ones, without needing an AJAX fetch.
+   ============================================================ */
+
+.mallem-swatch--hidden {
+  display: none;
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .mallem-swatch--color::before,
+  .mallem-swatch__label {
+    transition: none;
+  }
+}

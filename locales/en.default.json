@@ -393,6 +393,111 @@
       "max_error": "This item has a maximum of {{ max }}",
       "step_error": "You can only add this item in increments of {{ step }}"
     },
+    "mallem_hero_slider": {
+      "name": "Hero Slider",
+      "settings": {
+        "header_slideshow": { "content": "Slideshow" },
+        "autoplay":         { "label": "Auto-rotate slides" },
+        "autoplay_speed":   { "label": "Change slides every" },
+        "show_arrows":      { "label": "Show arrow buttons" },
+        "show_dots":        { "label": "Show navigation dots" },
+        "slide_height": {
+          "label": "Slide height",
+          "options": {
+            "small":  "Small (50vh)",
+            "medium": "Medium (65vh)",
+            "large":  "Large (80vh)",
+            "full":   "Full screen"
+          }
+        },
+        "full_width": { "label": "Full width" }
+      },
+      "blocks": {
+        "slide": {
+          "name": "Slide",
+          "settings": {
+            "header_image":    { "content": "Image" },
+            "image":           { "label": "Desktop image" },
+            "mobile_image":    { "label": "Mobile image", "info": "Optional. Shown on screens under 750px wide." },
+            "overlay_opacity": { "label": "Image overlay opacity" },
+            "header_content":  { "content": "Content" },
+            "text_position": {
+              "label": "Text position",
+              "options": {
+                "top_left":      "Top left",
+                "top_center":    "Top center",
+                "top_right":     "Top right",
+                "middle_left":   "Middle left",
+                "middle_center": "Middle center",
+                "middle_right":  "Middle right",
+                "bottom_left":   "Bottom left",
+                "bottom_center": "Bottom center",
+                "bottom_right":  "Bottom right"
+              }
+            },
+            "heading":       { "label": "Heading", "default": "Shop the collection" },
+            "heading_size": {
+              "label": "Heading size",
+              "options": {
+                "small":  "Small",
+                "medium": "Medium",
+                "large":  "Large"
+              }
+            },
+            "subheading":              { "label": "Subheading", "default": "Discover premium products at unbeatable prices." },
+            "header_buttons":          { "content": "Buttons" },
+            "button_label":            { "label": "Button label", "default": "Shop now" },
+            "button_link":             { "label": "Button link" },
+            "button_style": {
+              "label": "Button style",
+              "options": {
+                "primary": "Primary",
+                "outline": "Outline",
+                "white":   "White"
+              }
+            },
+            "secondary_button_label":  { "label": "Second button label" },
+            "secondary_button_link":   { "label": "Second button link" },
+            "header_trust":            { "content": "Trust badges" },
+            "show_cod_badge":          { "label": "Show COD badge" },
+            "header_colors":           { "content": "Colors" }
+          }
+        }
+      }
+    },
+    "mallem_collection": {
+      "name": "Mallem Collection",
+      "presets": {
+        "name": "Mallem Collection"
+      },
+      "settings": {
+        "header_products": { "content": "Products" },
+        "products_per_page": { "label": "Products per page" },
+        "columns_desktop":   { "label": "Desktop columns" },
+        "columns_mobile":    { "label": "Mobile columns" },
+        "header_filters":    { "content": "Filters & Sorting" },
+        "enable_filters":    { "label": "Enable filters" },
+        "enable_sorting":    { "label": "Enable sorting" },
+        "header_card":       { "content": "Product card" },
+        "image_ratio": {
+          "label": "Image ratio",
+          "options": {
+            "square":    "Square",
+            "portrait":  "Portrait",
+            "landscape": "Landscape"
+          }
+        },
+        "show_vendor":          { "label": "Show vendor" },
+        "show_quick_view":      { "label": "Show quick view" },
+        "enable_hover_image":   { "label": "Show second image on hover" },
+        "header_swatches":      { "content": "Color swatches" },
+        "show_swatches":        { "label": "Show color swatches" },
+        "swatch_option_name": {
+          "label": "Swatch option name",
+          "info": "Enter the option name used for color (e.g. Color, Colour, اللون)"
+        }
+      }
+    },
     "mallem_sticky_atc": {
       "name": "Sticky Add to Cart",
       "settings": {
@@ -417,6 +522,69 @@
       },
       "presets": {
         "name": "Sticky Add to Cart"
+      }
+    },
+    "mallem_product_main": {
+      "name": "Mallem - Product",
+      "settings": {
+        "header_gallery":      { "content": "Gallery" },
+        "image_ratio": {
+          "label": "Image ratio",
+          "options": {
+            "square":    "Square (1:1)",
+            "portrait":  "Portrait (3:4)",
+            "landscape": "Landscape (4:3)"
+          }
+        },
+        "gallery_thumbnails_position": {
+          "label": "Thumbnail position",
+          "options": {
+            "left":   "Side rail",
+            "bottom": "Bottom row",
+            "hidden": "Hidden"
+          }
+        },
+        "enable_zoom":         { "label": "Enable zoom on hover" },
+        "header_product_info": { "content": "Product info" },
+        "show_vendor":         { "label": "Show vendor" },
+        "show_rating":         { "label": "Show rating placeholder" },
+        "header_sticky_atc":   { "content": "Sticky add to cart" },
+        "enable_sticky_atc":   { "label": "Enable sticky add to cart bar" },
+        "header_trust":        { "content": "Trust signals" },
+        "show_cod_badge":      { "label": "Show COD badge" },
+        "header_stock":        { "content": "Stock urgency" },
+        "stock_low_threshold": {
+          "label": "Low stock threshold",
+          "info":  "Show red 'Only N left' warning when stock is at or below this number"
+        },
+        "stock_medium_threshold": {
+          "label": "Medium stock threshold",
+          "info":  "Show orange 'Limited stock' warning when stock is at or below this number"
+        },
+        "header_shipping":              { "content": "Free shipping" },
+        "show_free_shipping_threshold": { "label": "Show free shipping threshold" },
+        "free_shipping_amount":         { "label": "Free shipping order minimum" }
+      },
+      "blocks": {
+        "description_tab": {
+          "name": "Description"
+        },
+        "size_guide_tab": {
+          "name": "Size guide",
+          "size_content": { "label": "Size guide content" }
+        },
+        "shipping_tab": {
+          "name": "Shipping & returns",
+          "shipping_content": { "label": "Shipping content" }
+        },
+        "custom_tab": {
+          "name": "Custom tab",
+          "custom_title":   { "label": "Tab title" },
+          "custom_content": { "label": "Tab content" }
+        }
+      },
+      "presets": {
+        "name": "Mallem - Product"
       }
     },
     "mallem_product_tabs": {
@@ -619,6 +787,30 @@
     }
   },
   "mallem": {
+    "product": {
+      "gallery_label":       "Product gallery",
+      "vendor_label":        "Vendor",
+      "quantity_label":      "Quantity",
+      "add_to_cart":         "Add to cart",
+      "sold_out":            "Sold out",
+      "unavailable":         "Unavailable",
+      "free_shipping_over":  "Free shipping on orders over {{ amount }}",
+      "decrease_quantity":   "Decrease quantity",
+      "increase_quantity":   "Increase quantity",
+      "gallery_previous":    "Previous image",
+      "gallery_next":        "Next image",
+      "gallery_go_to":       "Go to image {{ index }}",
+      "stock": {
+        "low":    "Only {{ count }} left in stock",
+        "medium": "Limited stock available",
+        "out":    "Out of stock"
+      },
+      "accordion": {
+        "description_tab": "Description",
+        "size_guide_tab":  "Size guide",
+        "shipping_tab":    "Shipping & returns"
+      }
+    },
     "sticky_atc": {
       "label": "Sticky add to cart bar"
     },
@@ -639,6 +831,44 @@
     "size_guide": {
       "button_text": "Size Guide",
       "open_modal": "Open size guide for {{ product_title }}"
+    },
+    "free_shipping_bar": {
+      "progress": "Add {{ amount }} more for free shipping",
+      "almost": "Only {{ amount }} away from free shipping!",
+      "achieved": "You've unlocked free shipping!",
+      "progress_label": "Free shipping progress: {{ percent }}%"
+    },
+    "swatches": {
+      "more": "{{ count }} more",
+      "sold_out_suffix": "(sold out)",
+      "select_option": "Select {{ option }}"
+    },
+    "hero_slider": {
+      "previous_slide":   "Previous slide",
+      "next_slide":       "Next slide",
+      "go_to_slide":      "Go to slide {{ number }}",
+      "slide_count":      "Slide {{ current }} of {{ total }}",
+      "pause_slideshow":  "Pause slideshow",
+      "play_slideshow":   "Play slideshow"
+    },
+    "collection": {
+      "filter_sort":           "Filter & Sort",
+      "filters_title":         "Filters",
+      "clear_all":             "Clear all",
+      "apply_filters":         "Apply",
+      "price_from":            "From",
+      "price_to":              "To",
+      "product_count":         "{{ count }} products",
+      "showing_count":         "Showing {{ shown }} of {{ total }}",
+      "load_more":             "Load more",
+      "no_results":            "No products found",
+      "clear_filters":         "Clear filters",
+      "sort_by_label":         "Sort by",
+      "active_filters_label":  "Active filters",
+      "remove_filter":         "Remove filter: {{ value }}",
+      "filter_sidebar_label":  "Product filters",
+      "filter_drawer_label":   "Filter and sort",
+      "close_drawer":          "Close"
     }
   }
 }

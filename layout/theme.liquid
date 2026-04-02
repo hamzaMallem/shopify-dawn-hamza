@@ -301,7 +301,7 @@
     </script>
   </head>
 
-  <body class="gradient{% if settings.animations_hover_elements != 'none' %} animate--hover-{{ settings.animations_hover_elements }}{% endif %}">
+  <body class="gradient{% if settings.animations_hover_elements != 'none' %} animate--hover-{{ settings.animations_hover_elements }}{% endif %}{% if settings.mallem_enable_rtl %} mallem-rtl{% else %} mallem-ltr{% endif %}">
     <a class="skip-to-content-link button visually-hidden" href="#MainContent">
       {{ 'accessibility.skip_to_text' | t }}
     </a>
@@ -382,6 +382,10 @@
         recipientFormCollapsed: `{{ 'recipient.form.collapsed' | t }}`,
         countrySelectorSearchCount: `{{ 'localization.country_results_count' | t: count: '[count]' }}`,
       };
+
+      window.Mallem = {
+        isRTL: {{ settings.mallem_enable_rtl | json }},
+      };
     </script>
 
     {%- if settings.predictive_search_enabled -%}
@@ -411,5 +415,15 @@
     {%- comment -%} Mallem Quick View Modal {%- endcomment -%}
     {% render 'mallem-quick-view-modal' %}
     <script src="{{ 'mallem-quick-view.js' | asset_url }}" defer="defer"></script>
+
+    {%- comment -%}
+      MALLEM FREE SHIPPING BAR ASSETS
+      WHY conditional: zero overhead when merchant disables the feature
+      WHY defer: non-blocking; Liquid renders initial state so no visual delay
+    {%- endcomment -%}
+    {%- if settings.mallem_free_shipping_enabled -%}
+      <link rel="stylesheet" href="{{ 'mallem-free-shipping-bar.css' | asset_url }}">
+      <script src="{{ 'mallem-free-shipping-bar.js' | asset_url }}" defer="defer"></script>
+    {%- endif -%}
   </body>
 </html>

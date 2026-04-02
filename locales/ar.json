@@ -392,6 +392,174 @@
       "max_error": "هذا العنصر لديه حد أقصى {{ max }}",
       "step_error": "يمكنك إضافة هذا العنصر فقط بزيادات {{ step }}"
     },
+    "mallem_product_main": {
+      "name": "مالم - المنتج",
+      "settings": {
+        "header_gallery":      { "content": "المعرض" },
+        "image_ratio": {
+          "label": "نسبة الصورة",
+          "options": {
+            "square":    "مربعة (1:1)",
+            "portrait":  "عمودية (3:4)",
+            "landscape": "أفقية (4:3)"
+          }
+        },
+        "gallery_thumbnails_position": {
+          "label": "موضع الصور المصغرة",
+          "options": {
+            "left":   "شريط جانبي",
+            "bottom": "صف سفلي",
+            "hidden": "مخفية"
+          }
+        },
+        "enable_zoom":         { "label": "تفعيل التكبير عند التمرير" },
+        "header_product_info": { "content": "معلومات المنتج" },
+        "show_vendor":         { "label": "عرض المورد" },
+        "show_rating":         { "label": "عرض مكان التقييم" },
+        "header_sticky_atc":   { "content": "شريط الإضافة الثابت" },
+        "enable_sticky_atc":   { "label": "تفعيل شريط الإضافة للسلة الثابت" },
+        "header_trust":        { "content": "إشارات الثقة" },
+        "show_cod_badge":      { "label": "عرض شارة الدفع عند الاستلام" },
+        "header_stock":        { "content": "إلحاحية المخزون" },
+        "stock_low_threshold": {
+          "label": "حد المخزون المنخفض",
+          "info":  "يظهر تحذير أحمر 'باقي N قطعة' عندما يصل المخزون إلى هذا العدد أو أقل"
+        },
+        "stock_medium_threshold": {
+          "label": "حد المخزون المتوسط",
+          "info":  "يظهر تحذير برتقالي 'مخزون محدود' عندما يصل المخزون إلى هذا العدد أو أقل"
+        },
+        "header_shipping":              { "content": "الشحن المجاني" },
+        "show_free_shipping_threshold": { "label": "عرض حد الشحن المجاني" },
+        "free_shipping_amount":         { "label": "الحد الأدنى للشحن المجاني" }
+      },
+      "blocks": {
+        "description_tab": {
+          "name": "الوصف"
+        },
+        "size_guide_tab": {
+          "name": "دليل المقاسات",
+          "size_content": { "label": "محتوى دليل المقاسات" }
+        },
+        "shipping_tab": {
+          "name": "الشحن والإرجاع",
+          "shipping_content": { "label": "محتوى الشحن" }
+        },
+        "custom_tab": {
+          "name": "تب مخصص",
+          "custom_title":   { "label": "عنوان التب" },
+          "custom_content": { "label": "محتوى التب" }
+        }
+      },
+      "presets": {
+        "name": "مالم - المنتج"
+      }
+    },
+    "mallem_hero_slider": {
+      "name": "سلايدر رئيسي",
+      "settings": {
+        "header_slideshow": { "content": "عرض الشرائح" },
+        "autoplay":         { "label": "التدوير التلقائي للشرائح" },
+        "autoplay_speed":   { "label": "تغيير الشرائح كل" },
+        "show_arrows":      { "label": "إظهار أزرار التنقل" },
+        "show_dots":        { "label": "إظهار نقاط التنقل" },
+        "slide_height": {
+          "label": "ارتفاع الشريحة",
+          "options": {
+            "small":  "صغير (50vh)",
+            "medium": "متوسط (65vh)",
+            "large":  "كبير (80vh)",
+            "full":   "شاشة كاملة"
+          }
+        },
+        "full_width": { "label": "عرض كامل" }
+      },
+      "blocks": {
+        "slide": {
+          "name": "شريحة",
+          "settings": {
+            "header_image":    { "content": "الصورة" },
+            "image":           { "label": "صورة سطح المكتب" },
+            "mobile_image":    { "label": "صورة الجوال", "info": "اختياري. تظهر على الشاشات الأصغر من 750px." },
+            "overlay_opacity": { "label": "شفافية طبقة التغطية" },
+            "header_content":  { "content": "المحتوى" },
+            "text_position": {
+              "label": "موضع النص",
+              "options": {
+                "top_left":      "أعلى يسار",
+                "top_center":    "أعلى وسط",
+                "top_right":     "أعلى يمين",
+                "middle_left":   "وسط يسار",
+                "middle_center": "وسط",
+                "middle_right":  "وسط يمين",
+                "bottom_left":   "أسفل يسار",
+                "bottom_center": "أسفل وسط",
+                "bottom_right":  "أسفل يمين"
+              }
+            },
+            "heading":       { "label": "العنوان الرئيسي", "default": "تسوق المجموعة" },
+            "heading_size": {
+              "label": "حجم العنوان",
+              "options": {
+                "small":  "صغير",
+                "medium": "متوسط",
+                "large":  "كبير"
+              }
+            },
+            "subheading":             { "label": "العنوان الفرعي", "default": "اكتشف منتجات مميزة بأسعار لا تُضاهى." },
+            "header_buttons":         { "content": "الأزرار" },
+            "button_label":           { "label": "نص الزر", "default": "تسوق الآن" },
+            "button_link":            { "label": "رابط الزر" },
+            "button_style": {
+              "label": "نمط الزر",
+              "options": {
+                "primary": "رئيسي",
+                "outline": "مخطط",
+                "white":   "أبيض"
+              }
+            },
+            "secondary_button_label": { "label": "نص الزر الثاني" },
+            "secondary_button_link":  { "label": "رابط الزر الثاني" },
+            "header_trust":           { "content": "شارات الثقة" },
+            "show_cod_badge":         { "label": "إظهار شارة الدفع عند الاستلام" },
+            "header_colors":          { "content": "الألوان" }
+          }
+        }
+      }
+    },
+    "mallem_collection": {
+      "name": "مجموعة مالم",
+      "presets": {
+        "name": "مجموعة مالم"
+      },
+      "settings": {
+        "header_products": { "content": "المنتجات" },
+        "products_per_page": { "label": "عدد المنتجات في الصفحة" },
+        "columns_desktop":   { "label": "أعمدة سطح المكتب" },
+        "columns_mobile":    { "label": "أعمدة الجوال" },
+        "header_filters":    { "content": "الفلاتر والترتيب" },
+        "enable_filters":    { "label": "تفعيل الفلاتر" },
+        "enable_sorting":    { "label": "تفعيل الترتيب" },
+        "header_card":       { "content": "بطاقة المنتج" },
+        "image_ratio": {
+          "label": "نسبة الصورة",
+          "options": {
+            "square":    "مربع",
+            "portrait":  "عمودي",
+            "landscape": "أفقي"
+          }
+        },
+        "show_vendor":          { "label": "إظهار المورد" },
+        "show_quick_view":      { "label": "إظهار العرض السريع" },
+        "enable_hover_image":   { "label": "إظهار الصورة الثانية عند التحويم" },
+        "header_swatches":      { "content": "عينات الألوان" },
+        "show_swatches":        { "label": "إظهار عينات الألوان" },
+        "swatch_option_name": {
+          "label": "اسم خيار اللون",
+          "info": "أدخل اسم الخيار المستخدم للألوان (مثال: Color, Colour, اللون)"
+        }
+      }
+    },
     "mallem_sticky_atc": {
       "name": "شريط الإضافة الثابت للسلة",
       "settings": {
@@ -618,6 +786,38 @@
     }
   },
   "mallem": {
+    "product": {
+      "gallery_label":       "صور المنتج",
+      "vendor_label":        "العلامة التجارية",
+      "quantity_label":      "الكمية",
+      "add_to_cart":         "أضف إلى السلة",
+      "sold_out":            "نفد المخزون",
+      "unavailable":         "غير متوفر",
+      "free_shipping_over":  "شحن مجاني للطلبات فوق {{ amount }}",
+      "decrease_quantity":   "تقليل الكمية",
+      "increase_quantity":   "زيادة الكمية",
+      "gallery_previous":    "الصورة السابقة",
+      "gallery_next":        "الصورة التالية",
+      "gallery_go_to":       "انتقل إلى الصورة {{ index }}",
+      "stock": {
+        "low":    "باقي {{ count }} قطعة فقط",
+        "medium": "مخزون محدود",
+        "out":    "نفد المخزون"
+      },
+      "accordion": {
+        "description_tab": "الوصف",
+        "size_guide_tab":  "دليل المقاسات",
+        "shipping_tab":    "الشحن والإرجاع"
+      }
+    },
+    "hero_slider": {
+      "previous_slide":  "الشريحة السابقة",
+      "next_slide":      "الشريحة التالية",
+      "go_to_slide":     "انتقل إلى الشريحة {{ number }}",
+      "slide_count":     "الشريحة {{ current }} من {{ total }}",
+      "pause_slideshow": "إيقاف مؤقت",
+      "play_slideshow":  "تشغيل"
+    },
     "sticky_atc": {
       "label": "شريط الإضافة الثابت إلى السلة"
     },
@@ -638,6 +838,36 @@
     "size_guide": {
       "button_text": "دليل المقاسات",
       "open_modal": "فتح دليل المقاسات لـ {{ product_title }}"
+    },
+    "free_shipping_bar": {
+      "progress": "أضف {{ amount }} للحصول على شحن مجاني",
+      "almost": "أنت على بُعد {{ amount }} فقط من الشحن المجاني!",
+      "achieved": "لقد حصلت على الشحن المجاني!",
+      "progress_label": "تقدم الشحن المجاني: {{ percent }}%"
+    },
+    "swatches": {
+      "more": "{{ count }} أكثر",
+      "sold_out_suffix": "(نفد)",
+      "select_option": "اختر {{ option }}"
+    },
+    "collection": {
+      "filter_sort":           "تصفية وترتيب",
+      "filters_title":         "الفلاتر",
+      "clear_all":             "مسح الكل",
+      "apply_filters":         "تطبيق",
+      "price_from":            "من",
+      "price_to":              "إلى",
+      "product_count":         "{{ count }} منتج",
+      "showing_count":         "عرض {{ shown }} من {{ total }}",
+      "load_more":             "تحميل المزيد",
+      "no_results":            "لم يتم العثور على منتجات",
+      "clear_filters":         "مسح الفلاتر",
+      "sort_by_label":         "ترتيب حسب",
+      "active_filters_label":  "الفلاتر النشطة",
+      "remove_filter":         "إزالة الفلتر: {{ value }}",
+      "filter_sidebar_label":  "فلاتر المنتجات",
+      "filter_drawer_label":   "تصفية وترتيب",
+      "close_drawer":          "إغلاق"
     }
   }
 }
